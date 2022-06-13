@@ -1,0 +1,11 @@
+[default]
+name=Default
+runtime=podman:7886ac1dbb6dfb6f3a4afd90047cc80e7e31c0371c57105e04f6d422695f5aa0
+toolchain=default
+config-opts=
+run-opts=
+prefix=/var/home/syabro/.var/app/org.gnome.Builder/cache/gnome-builder/install/syabro_utils/podman-7886ac1dbb6dfb6f3a4afd90047cc80e7e31c0371c57105e04f6d422695f5aa0
+app-id=
+postbuild=
+prebuild=
+default=true
