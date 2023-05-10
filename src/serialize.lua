@@ -66,6 +66,10 @@ local function ser(o, ts)
 	return out
 end
 
+local M = setmetatable({}, {__call = function(self, ...)
+	self.serialize(...)
+end})
+
 ---Serialize to file
 ---@param filepath string
 ---@param data any
@@ -91,10 +95,6 @@ function M.serialize(o, readable)
 		return ser(o)
 	end
 end
-
-local M = setmetatable({}, { __call = function(self, ...)
-	self.serialize(...)
-end })
 
 M.ser = ser
 M.fser = fser
