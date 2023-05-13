@@ -12,16 +12,23 @@ return function()
         __metatable = "aboba",
     }
     data.__index = data
-    data.__newindex = function (self, key, new_data)
+    function data.__pairs(self) return pairs(data) end
+    function data.__len(self)
+    	return #data
+    end
+    function data.__newindex(self, key, new_data)
         if key == "__index"
         or key == "__newindex"
         or key == "__metatable"
+        or key == "__pairs"
+        or key == "__len"
         or key == "data_changed"
         then return end
 
         self.data_changed(key, new_data)
         data[key] = new_data
     end
+    
     local obj = {}
 
     return setmetatable(obj, data)
