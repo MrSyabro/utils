@@ -28,6 +28,17 @@ function M.newzero(s)
     return newvec
 end
 
+---Создает единичный вектор размера s
+---@param s number
+---@return vec
+function M.newsingle(s)
+    local newvec = setmetatable({}, M)
+    for i = 1, s do
+        newvec[i] = 1
+    end
+    return newvec
+end
+
 ---Создает копию вектора
 ---@param vec number[]
 ---@return vec
@@ -517,4 +528,6 @@ M.__concat= M.concat
 
 M.__tostring = M.tostring
 
-return M
+return setmetatable(M, {__call = function(self, ...)
+	return setmetatable({...}, self)
+end})
