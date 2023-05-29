@@ -41,11 +41,17 @@ eventmgr_class.__call = eventmgr_class.send
 
 ---Создает новый менеджер событий
 ---@param name string #имя для обработчика (по умолчанию Test)
+---@param weak boolean? #делает список колбеков слабой таблицей
 ---@return Event
-return function(name)
+return function(name, weak)
 	local mgr = eventmgr_class:new()
 	mgr.name = name
-	mgr.callbacks = {}
+	if weak then
+		mgr.__mode = "k"
+		mgr.callbacks = setmetatable({}, mgr)
+	else
+		mgr.callbacks = {}
+	end
 
 	return mgr
 end
