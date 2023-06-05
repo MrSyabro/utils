@@ -528,6 +528,10 @@ M.__concat= M.concat
 
 M.__tostring = M.tostring
 
-return setmetatable(M, {__call = function(self, ...)
-	return setmetatable({...}, self)
-end})
+M.__name = "Vec"
+
+return setmetatable(M, {
+    __call = function(self, ...)
+	    return setmetatable({...}, self)
+    end
+})

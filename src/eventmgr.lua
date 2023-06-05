@@ -1,7 +1,7 @@
 local obj = require "obj"
 
 ---@class Event : Object
----@operator call(...):nil
+---@operator call(...):nil #Рассылает событие по списку рассылки
 ---@field n number #кол-во функций менеджера
 ---@field name string #имя менеджера для дебага
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
@@ -11,7 +11,7 @@ local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
 
----Добавляет функцию в список рассылки менеджера событий
+---Добавляет функцию или рутину в список рассылки менеджера событий
 ---@param callback function|thread
 function eventmgr_class:addCallback(callback)
 	local t = type(callback)
@@ -22,7 +22,7 @@ function eventmgr_class:addCallback(callback)
 	else error("Bad callback type", 2) end
 end
 
----Удаляет функцию из списка рассылки менеджера событий
+---Удаляет функцию или рутину из списка рассылки менеджера событий
 ---@param callback function|thread
 function eventmgr_class:rmCallback(callback)
 	local t = type(callback)
