@@ -1,15 +1,17 @@
 local event = require "eventmgr"
+
+---@class Data : table
+---@field data_changed Event|fun(ket: any, data: any, old_data:any) #событие вызывается, когда данные в таблице меняются
+
 --[[
 		Функция создает таблицу, которая умеет сообщать об изменении данных внутри себя
 	получить событие можно в поле `data_changed: EventManager` и ествественно оно
-	защищено от записи.
---]]
-
----@return table
+	защищено от записи. ]]
+---@return Data
 return function()
     local data = {
         data_changed = event("Data_changed"),
-        __metatable = "aboba",
+        __metatable = "Aboba protect",
     }
     data.__index = data
     function data.__pairs(self) return pairs(data) end
@@ -18,14 +20,14 @@ return function()
     end
     function data.__newindex(self, key, new_data)
         if key == "__index"
-        or key == "__newindex"
-        or key == "__metatable"
-        or key == "__pairs"
-        or key == "__len"
-        or key == "data_changed"
+            or key == "__newindex"
+            or key == "__metatable"
+            or key == "__pairs"
+            or key == "__len"
+            or key == "data_changed"
         then return end
 
-        self.data_changed(key, new_data)
+        self.data_changed(key, new_data, data[key])
         data[key] = new_data
     end
     
