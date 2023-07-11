@@ -9,29 +9,23 @@ local event = require "eventmgr"
 	защищено от записи. ]]
 ---@return Data
 return function()
-    local data = {
-        data_changed = event("Data_changed"),
-        __metatable = "Aboba protect",
-    }
-    data.__index = data
-    function data.__pairs(self) return pairs(data) end
-    function data.__len(self)
-    	return #data
-    end
-    function data.__newindex(self, key, new_data)
-        if key == "__index"
-            or key == "__newindex"
-            or key == "__metatable"
-            or key == "__pairs"
-            or key == "__len"
-            or key == "data_changed"
-        then return end
-
-        self.data_changed(key, new_data, data[key])
-        data[key] = new_data
-    end
+    local data = {}
     
-    local obj = {}
+    local obj = {
+        data_changed = event("Data_changed"),
+        __metatable = "Not protected with aboba",
+        __pairs = function (self)
+            return pairs(data)
+        end,
+        __newindex = function (self, key, new_data)
+            self.data_changed(key, new_data, data[key])
+            data[key] = new_data
+        end,
+        __index = data,
+        __len = function(self)
+            return #data
+        end
+    }
 
-    return setmetatable(obj, data)
+    return setmetatable(obj, obj)
 end
