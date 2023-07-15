@@ -1,3 +1,4 @@
+---Простейщая версия обьекта на основе метатаблице
 ---@class Object
 local O = {}
 O.__index = O
@@ -18,22 +19,36 @@ function O.new(self, name, data)
 	return setmetatable(data, self)
 end
 
----Получает имя обьекта из метатблицы
----@return string?
-function O:get_name()
-	return self.__name
+---Рекурсивно копирует обьект включая метатаблицу.
+---Если метатаблицы нет, устанавливает `Object`
+---@generic O : Object
+---@param self O
+---@param data table?
+---@return O
+function O.copy(self, data)
+	local data = setmetatable(data or {}, getmetatable(self) or O)
+
+	for key, value in pairs(self) do
+		if type(value) == "table" then
+			if value ~= O then
+				data[key] = O
+			else
+				data[key] = O.copy(value)
+			end
+		else
+			data[key] = value
+		end
+	end
+	
+	return data
 end
 
----Устанавливает имя обьекта в метатаблице
----@param name string?
-function O:set_name(name)
-	self.__name = name
+---Сериализует обьект
+---@param self Object
+function O.dump(self)
+	local ser = require "serialize"
+	return ser.ser(self, {[O] = true})
 end
 
----Возвращает родительский обьект
----@return Object
-function O:parent()
-	return self.__index
-end
 
 return O

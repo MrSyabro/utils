@@ -1,17 +1,32 @@
 local obj = require "obj"
 
+--[[ ### Event - эмитатор событий
+`Event` принимает колбеки типов:
+- `function`
+- `thread`
+
+Вызов `Event:send(...)` рассылает всем колбекам переданные
+аргументы.
+
+Опционально список **колбеков-функций** может быть слабым
+(не держать ссылки на функции)
+
+Функции экранированы и вызывают `warn` с сообщением ошибки
+и названием эмитатора указанного при создании.
+
+Для отправки в рутину используется `resume` соответственно
+они поддерживают вечные цикли внутри также они могут сами
+уничтожатся в отличии от функций.]]
 ---@class Event : Object
 ---@operator call(...):nil #Рассылает событие по списку рассылки
----@field n number #кол-во функций менеджера
 ---@field name string #имя менеджера для дебага
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
 ---@field protected callback_ths table<thread, boolean> #список рутин колбеков
----Менеджер событий для реализации подписки и рассылки на несколько функций
 local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
 
----Добавляет функцию или рутину в список рассылки менеджера событий
+---Добавляет функцию или рутину в список рассылки `Event`
 ---@param callback function|thread
 function eventmgr_class:addCallback(callback)
 	local t = type(callback)
@@ -22,7 +37,7 @@ function eventmgr_class:addCallback(callback)
 	else error("Bad callback type", 2) end
 end
 
----Удаляет функцию или рутину из списка рассылки менеджера событий
+---Удаляет функцию или рутину из списка рассылки `Event`
 ---@param callback function|thread
 function eventmgr_class:rmCallback(callback)
 	local t = type(callback)
@@ -34,8 +49,8 @@ function eventmgr_class:rmCallback(callback)
 	else error("Bad callback type", 2) end
 end
 
----Рассылает событие по списку рассылки
----@vararg any?
+---Рассылает переданные пргументы по списку рассылки
+---@param ... any?
 function eventmgr_class:send(...)
 	if self.enabled then
 		for callback_fn in pairs(self.callback_fns) do
@@ -58,21 +73,22 @@ function eventmgr_class:send(...)
 end
 eventmgr_class.__call = eventmgr_class.send
 
----Создает новый менеджер событий
+---Создает экземпляр `Event`
 ---@param name string #имя для обработчика (по умолчанию Test)
 ---@param weak boolean? #делает список колбеков слабой таблицей
 ---@return Event
-return function(name, weak)
-	local mgr = eventmgr_class:new()
+function eventmgr_class:new(name, weak)
+	local mgr = obj.new(self)
 	mgr.name = name
 	if weak then
 		mgr.__mode = "k"
 		mgr.callback_fns = setmetatable({}, mgr)
-		mgr.callback_ths = setmetatable({}, mgr)
 	else
 		mgr.callback_fns = {}
-		mgr.callback_ths = {}
 	end
+	mgr.callback_ths = {}
 
 	return mgr
 end
+
+return eventmgr_class
