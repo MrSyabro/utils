@@ -13,7 +13,6 @@ return function()
     
     local obj = {
         data_changed = event("Data_changed"),
-        __metatable = "Not protected with aboba",
         __pairs = function (self)
             return pairs(data)
         end,
