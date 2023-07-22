@@ -490,7 +490,7 @@ end
 ---@param vecb number[]
 ---@param param number --from 0 to 1
 function M.lerp(veca, vecb, param)
-    param = math.clamp(param, 0, 1)
+    param = math.max(math.min(1, param), 0)
     local fromToVec = M.sub(vecb, veca)
     return M.add(veca, M.mulnum(fromToVec, param))
 end
