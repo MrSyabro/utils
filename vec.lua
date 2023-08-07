@@ -485,7 +485,7 @@ function M.dot(veca, vecb)
     return out
 end
 
--- возвращает вектор между veca vecb в соотношении param
+---Возвращает вектор между veca vecb в соотношении param
 ---@param veca number[]
 ---@param vecb number[]
 ---@param param number --from 0 to 1
@@ -524,7 +524,8 @@ M.__bnot	= M.bnot
 M.__shl		= M.shl
 M.__shr		= M.shr
 M.__eq		= M.eq
-M.__concat= M.concat
+M.__concat  = M.concat
+M.__index   = M
 
 M.__tostring = M.tostring
 
