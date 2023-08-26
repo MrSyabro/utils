@@ -779,6 +779,15 @@ function M.normalize(vec)
     return M.divnum(vec, len), len
 end
 
+---Нормализует вектор до единичного
+---@param vec number[]
+---@return vec
+---@return number len
+function M.__normalize(vec)
+    local len = M.len(vec)
+    return M.__divnum(vec, len), len
+end
+
 ---Выводит средний вектор
 ---@param veca number[]
 ---@param vecb number[]
