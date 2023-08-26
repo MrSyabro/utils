@@ -53,8 +53,18 @@ end
 ---Суммирует векторы
 ---@param veca any
 ---@param vecb any
----@return vec
 function M.add(veca, vecb)
+    for i = 1, #veca do
+        veca[i] = veca[i] + (vecb[i] or 0)
+    end
+    return veca
+end
+
+---Суммирует векторы
+---@param veca any
+---@param vecb any
+---@return vec
+function M.__add(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] + (vecb[i] or 0))
@@ -68,6 +78,18 @@ end
 ---@param n number
 ---@return vec
 function M.addnum(vec, n)
+    for i = 1, #vec do
+        vec[i] = vec[i] + n
+    end
+
+    return vec
+end
+
+---Суммирует вектор и число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__addnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
         table.insert(newvec, value + n)
@@ -81,6 +103,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.sub(veca, vecb)
+    for i = 1, #veca do
+        veca[i] = veca[i] - (vecb[i] or 0)
+    end
+
+    return veca
+end
+
+---Вычитает вектор vecb из вектора veca
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__sub(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] - (vecb[i] or 0))
@@ -94,6 +128,18 @@ end
 ---@param n number
 ---@return vec
 function M.subnum(vec, n)
+    for i = 1, #vec do
+        vec[i] = vec[i] - n
+    end
+
+    return vec
+end
+
+---Вычитает число из вектора
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__subnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
         table.insert(newvec, value - n)
@@ -107,6 +153,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.mul(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] * (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---Умножает вектор на вектор
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__mul(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] * (vecb[i] or 1))
@@ -120,6 +178,18 @@ end
 ---@param n number
 ---@return vec
 function M.mulnum(vec, n)
+    for i = 1, #vec do
+        vec[i] = vec[i] * n
+    end
+
+    return vec
+end
+
+---Умножает вектор на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__mulnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
         table.insert(newvec, value * n)
@@ -133,6 +203,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.div(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] / (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---Делит вектор на вектор
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__div(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] / (vecb[i] or 1))
@@ -146,6 +228,18 @@ end
 ---@param n number
 ---@return vec
 function M.divnum(vec, n)
+    for i = 1, #vec do
+        vec[i] = vec[i] / n
+    end
+
+    return vec
+end
+
+---Делит вектор на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__divnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
         table.insert(newvec, value / n)
@@ -159,6 +253,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.mod(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] % (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---Остаток от деления элементов veca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__mod(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] % (vecb[i] or 1))
@@ -172,6 +278,18 @@ end
 ---@param n number
 ---@return vec
 function M.modnum(vec, n)
+    for i = 1, #vec do
+        vec[i] = vec[i] % n
+    end
+
+    return vec
+end
+
+---Остаток от деления элементов veca на n
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__modnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
         table.insert(newvec, value % n)
@@ -185,6 +303,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.pow(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] ^ (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---Вознесение в степень vecb элементов vaca
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__pow(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] ^ (vecb[i] or 1))
@@ -198,6 +328,18 @@ end
 ---@param n number
 ---@return vec
 function M.pownum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] ^ n
+	end
+
+	return vec
+end
+
+---Вознесение в степень элементов вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__pownum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value ^ n)
@@ -210,6 +352,17 @@ end
 ---@param vec number[]
 ---@return vec
 function M.unm(vec)
+	for i = 1, #vec do
+		vec[i] =  -vec[i]
+	end
+
+	return vec
+end
+
+---Одномесный минус элементов vec
+---@param vec number[]
+---@return vec
+function M.__unm(vec)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, -value)
@@ -223,6 +376,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.idiv(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] // (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---Целочисленное деление элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__idiv(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] // (vecb[i] or 1))
@@ -236,6 +401,18 @@ end
 ---@param n number
 ---@return vec
 function M.idivnum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] // n
+	end
+
+	return vec
+end
+
+---Целочисленное деление вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__idivnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value // n)
@@ -249,6 +426,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.band(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] & (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---битовое И элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__band(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] & (vecb[i] or 1))
@@ -262,6 +451,18 @@ end
 ---@param n number
 ---@return vec
 function M.bandnum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] & n
+	end
+
+	return vec
+end
+
+---битовое И вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__bandnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value & n)
@@ -275,6 +476,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.bor(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] | (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---битовое ИЛИ элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__bor(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] | (vecb[i] or 1))
@@ -288,6 +501,18 @@ end
 ---@param n number
 ---@return vec
 function M.bornum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] | n
+	end
+
+	return vec
+end
+
+---битовое ИЛИ вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__bornum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value | n)
@@ -301,6 +526,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.bxor(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] ~ (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---битовое ИЛИ-НЕ элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__bxor(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] ~ (vecb[i] or 1))
@@ -314,6 +551,18 @@ end
 ---@param n number
 ---@return vec
 function M.bxornum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] ~ n
+	end
+
+	return vec
+end
+
+---битовое ИЛИ-НЕ вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__bxornum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value ~ n)
@@ -326,6 +575,17 @@ end
 ---@param vec number[]
 ---@return vec
 function M.bnot(vec)
+    for i = 1, #vec do
+        vec[i] =  ~vec[i]
+    end
+
+    return vec
+end
+
+---битовое одноместное НЕ элементов vac
+---@param vec number[]
+---@return vec
+function M.__bnot(vec)
 	local newvec = setmetatable({}, M)
     for i = 1, #vec do
         table.insert(newvec, ~vec[i])
@@ -339,6 +599,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.shl(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] << (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---битовый сдвиг влево элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__shl(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] << (vecb[i] or 1))
@@ -352,6 +624,18 @@ end
 ---@param n number
 ---@return vec
 function M.shlnum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] << n
+	end
+
+	return vec
+end
+
+---битовый сдвиг влево вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__shlnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value << n)
@@ -365,6 +649,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.shr(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  veca[i] ~ (vecb[i] or 1)
+    end
+
+    return veca
+end
+
+---битовый сдвиг вправо элементов vaca на vecb
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__shr(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, veca[i] ~ (vecb[i] or 1))
@@ -378,6 +674,18 @@ end
 ---@param n number
 ---@return vec
 function M.shrnum(vec, n)
+	for i = 1, #vec do
+		vec[i] = vec[i] ~ n
+	end
+
+	return vec
+end
+
+---битовый сдвиг вправо вектора на число
+---@param vec number[]
+---@param n number
+---@return vec
+function M.__shrnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
 		table.insert(newvec, value ~ n)
@@ -410,6 +718,18 @@ function M.eqnum(vec, n)
 		end
 	end
 	return true
+end
+
+---Ставить vecb в конец veca
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__concat(veca, vecb)
+	for i = 1, #vecb do
+		table.insert(veca, vecb[i])
+	end
+
+	return veca
 end
 
 ---Ставить vecb в конец veca
@@ -464,6 +784,18 @@ end
 ---@param vecb number[]
 ---@return vec
 function M.mean(veca, vecb)
+    for i = 1, #veca do
+        veca[i] =  (veca[i] + (vecb[i] or 0)) / 2
+    end
+
+    return veca
+end
+
+---Выводит средний вектор
+---@param veca number[]
+---@param vecb number[]
+---@return vec
+function M.__mean(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
         table.insert(newvec, (veca[i] + (vecb[i] or 0)) / 2)
@@ -509,22 +841,7 @@ function M.tostring(vec)
 	return("{" .. table.concat(out, ",") .. "}")
 end
 
-M.__add		= M.add
-M.__sub		= M.sub
-M.__mul		= M.mul
-M.__div		= M.div
-M.__pow		= M.pow
-M.__mod		= M.mod
-M.__unm		= M.unm
-M.__idiv	= M.idiv
-M.__band	= M.band
-M.__bor		= M.bor
-M.__bxor	= M.bxor
-M.__bnot	= M.bnot
-M.__shl		= M.shl
-M.__shr		= M.shr
 M.__eq		= M.eq
-M.__concat  = M.concat
 M.__index   = M
 
 M.__tostring = M.tostring

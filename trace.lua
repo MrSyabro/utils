@@ -8,47 +8,53 @@
 
 local M = {}
 
+local tbc, tbi = table.concat, table.insert
+local dgi, dsh = debug.getinfo, debug.sethook
+local sf = string.format
+local oc = os.clock
+
 local funcs_count = 0
 ---@type table<function, traceinfo> таблица данных трассировки
-M.funcs_list = {}
+local funcs_list = {}
+M.funcs_list = funcs_list
 
-local serialize_funcs
 local function serialize_traceinfo(traceinfo)
 	local out = {"{"}
 	for k, v in pairs(traceinfo) do
 		if k == "callers" then
-			table.insert(out, "callers={")
+			tbi(out, "callers={")
 			for fid, count in pairs(v) do
-				table.insert(out, string.format("[%d]=%d,", fid, count))
+				tbi(out, sf("[%d]=%d,", fid, count))
 			end
-			table.insert(out, "},")
+			tbi(out, "},")
 		elseif k ~= "func" and k ~= "start" then
-			table.insert(out, string.format("[%q]=%q,", k, v))
+			tbi(out, sf("[%q]=%q,", k, v))
 		end
 	end
-	table.insert(out,"}")
-	return table.concat(out)
+	tbi(out,"}")
+	return tbc(out)
 end
 
-serialize_funcs = function(funcs)
+local function serialize_funcs(funcs)
 	local out = {"{"}
 	for _, traceinfo in pairs(funcs) do
-		table.insert(out, string.format("[%d]=%s,", traceinfo.id, serialize_traceinfo(traceinfo)))
+		tbi(out, sf("[%d]=%s,", traceinfo.id, serialize_traceinfo(traceinfo)))
 	end
-	table.insert(out, "}")
-	return table.concat(out)
+	tbi(out, "}")
+	return tbc(out)
 end
 
 local function hook(hook_type)
-	debug.sethook()
-	local traceinfo = debug.getinfo(2,"nStuf") --[[@as traceinfo]]
-	local secondti = debug.getinfo(3, "f")
+	dsh()
+	local traceinfo = dgi(2,"nStuf") --[[@as traceinfo]]
+	local curr_func = traceinfo.func
+	local secondti = dgi(3, "f")
 	if hook_type == "call" then
-		local storedinfo = M.funcs_list[traceinfo.func]
+		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
-			storedinfo.start = os.clock()
+			storedinfo.start = oc()
 			if secondti then
-				local second_sti = M.funcs_list[secondti.func]
+				local second_sti = funcs_list[secondti.func]
 				if second_sti then
 					local sid = second_sti.id
 					local calls = storedinfo.callers[sid] or 0
@@ -56,46 +62,46 @@ local function hook(hook_type)
 				end
 			end
 		elseif traceinfo.short_src ~= "[C]" then
-			traceinfo.start = os.clock()
+			traceinfo.start = oc()
 			traceinfo.full_clock = 0
 			traceinfo.source = nil
 			traceinfo.lastlinedefined = nil
 			traceinfo.callers = {}
 			if secondti then
-				local ti2 = M.funcs_list[secondti.func]
+				local ti2 = funcs_list[secondti.func]
 				if ti2 then
 					traceinfo.callers[ti2.id] = 1
 				end
 			end
 			funcs_count = funcs_count + 1
 			traceinfo.id = funcs_count
-			M.funcs_list[traceinfo.func] = traceinfo
+			funcs_list[curr_func] = traceinfo
 		end
 	elseif hook_type == "return" then
-		local storedinfo = M.funcs_list[traceinfo.func]
+		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
-			storedinfo.clock = os.clock() - storedinfo.start
+			storedinfo.clock = oc() - storedinfo.start
 			storedinfo.full_clock = storedinfo.full_clock + storedinfo.clock
 		end
 	end
-	return debug.sethook(hook, "cr")
+	return dsh(hook, "cr")
 end
 
 ---Запускает трассировки всех вызовов
 ---@return unknown
 function M.start()
-	return debug.sethook(hook, "cr")
+	return dsh(hook, "cr")
 end
 
 ---Останавливает трассировку
 function M.stop()
-	return debug.sethook()
+	return dsh()
 end
 
 ---Возвращает сериализованную таблицу трассировки
 ---@return string
 function M.dump()
-	return serialize_funcs(M.funcs_list)
+	return serialize_funcs(funcs_list)
 end
 
 return M
