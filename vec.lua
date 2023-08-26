@@ -755,7 +755,7 @@ end
 ---@param vec number[]
 ---@return number
 function M.len(vec)
-    local sum = M.sum(M.pownum(vec, 2))
+    local sum = M.sum(M.__pownum(vec, 2))
     return math.sqrt(sum)
 end
 
