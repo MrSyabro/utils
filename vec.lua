@@ -836,6 +836,16 @@ function M.lerp(veca, vecb, param)
     return M.add(veca, M.mulnum(fromToVec, param))
 end
 
+---Возвращает вектор между veca vecb в соотношении param
+---@param veca number[]
+---@param vecb number[]
+---@param param number --from 0 to 1
+function M.__lerp(veca, vecb, param)
+    param = math.max(math.min(1, param), 0)
+    local fromToVec = M.__sub(vecb, veca)
+    return M.__add(veca, M.mulnum(fromToVec, param))
+end
+
 
 --[[ Метатабличные операции ]]--
 
