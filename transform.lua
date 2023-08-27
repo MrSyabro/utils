@@ -1,15 +1,17 @@
 local vec = require "vec"
+local mcos, msin, matan = math.cos, math.sin, math.atan
+
 local M = {}
 
 ---Переводит угловой vec2 в декартовый vec3
 ---@param v number[]
 ---@return vec
 function M.rad2dec(v)
-	local sin2 = math.sin(v[2])
+	local sin2 = mcos(v[2])
 	local dir = vec(
-		sin2 * math.cos(v[1]),
-		sin2 * math.sin(v[1]),
-		math.cos(v[2]))
+		sin2 * mcos(v[1]),
+		sin2 * msin(v[1]),
+		mcos(v[2]))
 
 	return dir
 end
@@ -21,8 +23,8 @@ end
 function M.dec2rad(v)
 	local len = vec.len(v)
 	local out = vec(
-		math.atan(v[1], v[2]),
-		math.atan(len, v[3])
+		matan(v[1], v[2]),
+		matan(len, v[3])
 	)
 
 	return out, len
@@ -32,7 +34,7 @@ end
 ---@param a number
 ---@return vec
 function M.v2rad2dec(a)
-	local out = vec(math.cos(a), math.sin(a))
+	local out = vec(mcos(a), msin(a))
 
 	return out
 end
@@ -41,7 +43,7 @@ end
 ---@param v number[]
 ---@return number
 function M.v2dec2rad(v)
-	local out = math.atan(v[1], v[2])
+	local out = matan(v[1], v[2])
 
 	return out
 end

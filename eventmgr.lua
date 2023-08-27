@@ -1,5 +1,7 @@
 local obj = require "obj"
 
+local cs, cr = coroutine.status, coroutine.resume
+
 --[[ ### Event - эмитатор событий
 `Event` принимает колбеки типов:
 - `function`
@@ -44,7 +46,7 @@ function eventmgr_class:rmCallback(callback)
 	if t == "function" then
 		self.callback_fns[callback] = nil
 	elseif t == "thread" then
-		if coroutine.status(callback) == "dead" then error("Corutine already died", 2) end
+		if cs(callback) == "dead" then error("Corutine already died", 2) end
 		self.callback_ths[callback] = nil
 	else error("Bad callback type", 2) end
 end
@@ -61,11 +63,11 @@ function eventmgr_class:send(...)
 		end
 
 		for callback_th in pairs(self.callback_ths) do
-			local state, errmsg = coroutine.resume(callback_th, ...)
+			local state, errmsg = cr(callback_th, ...)
 			if not state then
 				warn(self.name, " Callback error: ", errmsg or "in coroutine")
 				self.callback_ths[callback_th] = nil
-			elseif coroutine.status(callback_th) == "dead" then
+			elseif cs(callback_th) == "dead" then
 				self.callback_ths[callback_th] = nil
 			end
 		end
