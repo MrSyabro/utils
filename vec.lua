@@ -1,3 +1,5 @@
+local ti = table.insert
+
 ---Если размер второго операнда меньше первого, недостающие элементы будут заменены 0 или 1 в зависимости от операции
 ---@class vec : number[]
 ---@operator add (number[]):vec
@@ -67,7 +69,7 @@ end
 function M.__add(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] + (vecb[i] or 0))
+        ti(newvec, veca[i] + (vecb[i] or 0))
     end
 
     return newvec
@@ -92,7 +94,7 @@ end
 function M.__addnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
-        table.insert(newvec, value + n)
+        ti(newvec, value + n)
     end
 
     return newvec
@@ -117,7 +119,7 @@ end
 function M.__sub(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] - (vecb[i] or 0))
+        ti(newvec, veca[i] - (vecb[i] or 0))
     end
 
     return newvec
@@ -142,7 +144,7 @@ end
 function M.__subnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
-        table.insert(newvec, value - n)
+        ti(newvec, value - n)
     end
 
     return newvec
@@ -167,7 +169,7 @@ end
 function M.__mul(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] * (vecb[i] or 1))
+        ti(newvec, veca[i] * (vecb[i] or 1))
     end
 
     return newvec
@@ -192,7 +194,7 @@ end
 function M.__mulnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
-        table.insert(newvec, value * n)
+        ti(newvec, value * n)
     end
 
     return newvec
@@ -217,7 +219,7 @@ end
 function M.__div(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] / (vecb[i] or 1))
+        ti(newvec, veca[i] / (vecb[i] or 1))
     end
 
     return newvec
@@ -242,7 +244,7 @@ end
 function M.__divnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
-        table.insert(newvec, value / n)
+        ti(newvec, value / n)
     end
 
     return newvec
@@ -267,7 +269,7 @@ end
 function M.__mod(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] % (vecb[i] or 1))
+        ti(newvec, veca[i] % (vecb[i] or 1))
     end
 
     return newvec
@@ -292,7 +294,7 @@ end
 function M.__modnum(vec, n)
     local newvec = setmetatable({}, M)
     for _, value in ipairs(vec) do
-        table.insert(newvec, value % n)
+        ti(newvec, value % n)
     end
 
     return newvec
@@ -317,7 +319,7 @@ end
 function M.__pow(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] ^ (vecb[i] or 1))
+        ti(newvec, veca[i] ^ (vecb[i] or 1))
     end
 
     return newvec
@@ -342,7 +344,7 @@ end
 function M.__pownum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value ^ n)
+		ti(newvec, value ^ n)
 	end
 
 	return newvec
@@ -365,7 +367,7 @@ end
 function M.__unm(vec)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, -value)
+		ti(newvec, -value)
 	end
 
 	return newvec
@@ -390,7 +392,7 @@ end
 function M.__idiv(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] // (vecb[i] or 1))
+        ti(newvec, veca[i] // (vecb[i] or 1))
     end
 
     return newvec
@@ -415,7 +417,7 @@ end
 function M.__idivnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value // n)
+		ti(newvec, value // n)
 	end
 
 	return newvec
@@ -440,7 +442,7 @@ end
 function M.__band(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] & (vecb[i] or 1))
+        ti(newvec, veca[i] & (vecb[i] or 1))
     end
 
     return newvec
@@ -465,7 +467,7 @@ end
 function M.__bandnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value & n)
+		ti(newvec, value & n)
 	end
 
 	return newvec
@@ -490,7 +492,7 @@ end
 function M.__bor(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] | (vecb[i] or 1))
+        ti(newvec, veca[i] | (vecb[i] or 1))
     end
 
     return newvec
@@ -515,7 +517,7 @@ end
 function M.__bornum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value | n)
+		ti(newvec, value | n)
 	end
 
 	return newvec
@@ -540,7 +542,7 @@ end
 function M.__bxor(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] ~ (vecb[i] or 1))
+        ti(newvec, veca[i] ~ (vecb[i] or 1))
     end
 
     return newvec
@@ -565,7 +567,7 @@ end
 function M.__bxornum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value ~ n)
+		ti(newvec, value ~ n)
 	end
 
 	return newvec
@@ -588,7 +590,7 @@ end
 function M.__bnot(vec)
 	local newvec = setmetatable({}, M)
     for i = 1, #vec do
-        table.insert(newvec, ~vec[i])
+        ti(newvec, ~vec[i])
     end
 
     return newvec
@@ -613,7 +615,7 @@ end
 function M.__shl(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] << (vecb[i] or 1))
+        ti(newvec, veca[i] << (vecb[i] or 1))
     end
 
     return newvec
@@ -638,7 +640,7 @@ end
 function M.__shlnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value << n)
+		ti(newvec, value << n)
 	end
 
 	return newvec
@@ -663,7 +665,7 @@ end
 function M.__shr(veca, vecb)
 	local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, veca[i] ~ (vecb[i] or 1))
+        ti(newvec, veca[i] ~ (vecb[i] or 1))
     end
 
     return newvec
@@ -688,7 +690,7 @@ end
 function M.__shrnum(vec, n)
 	local newvec = setmetatable({}, M)
 	for _, value in ipairs(vec) do
-		table.insert(newvec, value ~ n)
+		ti(newvec, value ~ n)
 	end
 
 	return newvec
@@ -726,7 +728,7 @@ end
 ---@return vec
 function M.__concat(veca, vecb)
 	for i = 1, #vecb do
-		table.insert(veca, vecb[i])
+		ti(veca, vecb[i])
 	end
 
 	return veca
@@ -739,16 +741,16 @@ end
 function M.concat(veca, vecb)
 	local newvec = setmetatable({}, M)
 	for i = 1, #veca do
-		table.insert(newvec, veca[i])
+		ti(newvec, veca[i])
 	end
 	for i = 1, #vecb do
-		table.insert(newvec, vecb[i])
+		ti(newvec, vecb[i])
 	end
 
 	return newvec
 end
 
-
+local mmax, mmin, ms = math.max, math.min, math.sqrt
 --[[ Спецефичные векторные операции ]]--
 
 ---Геометрическая длина вектора
@@ -756,7 +758,7 @@ end
 ---@return number
 function M.len(vec)
     local sum = M.sum(M.__pownum(vec, 2))
-    return math.sqrt(sum)
+    return ms(sum)
 end
 
 ---Сумма всех элементов вектора
@@ -807,7 +809,7 @@ end
 function M.__mean(veca, vecb)
     local newvec = setmetatable({}, M)
     for i = 1, #veca do
-        table.insert(newvec, (veca[i] + (vecb[i] or 0)) / 2)
+        ti(newvec, (veca[i] + (vecb[i] or 0)) / 2)
     end
 
     return newvec
@@ -831,7 +833,7 @@ end
 ---@param vecb number[]
 ---@param param number --from 0 to 1
 function M.lerp(veca, vecb, param)
-    param = math.max(math.min(1, param), 0)
+    param = mmax(mmin(1, param), 0)
     local fromToVec = M.sub(vecb, veca)
     return M.add(veca, M.mulnum(fromToVec, param))
 end
@@ -841,7 +843,7 @@ end
 ---@param vecb number[]
 ---@param param number --from 0 to 1
 function M.__lerp(veca, vecb, param)
-    param = math.max(math.min(1, param), 0)
+    param = mmax(mmin(1, param), 0)
     local fromToVec = M.__sub(vecb, veca)
     return M.__add(veca, M.mulnum(fromToVec, param))
 end
@@ -855,7 +857,7 @@ end
 function M.tostring(vec)
 	local out = {}
 	for i = 1, #vec do
-		table.insert(out, string.format("%g", vec[i]))
+		ti(out, string.format("%g", vec[i]))
 	end
 	return("{" .. table.concat(out, ",") .. "}")
 end
