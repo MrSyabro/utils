@@ -7,7 +7,7 @@ local M = {}
 ---@param v number[]
 ---@return vec
 function M.rad2dec(v)
-	local sin2 = mcos(v[2])
+	local sin2 = msin(v[2])
 	local dir = vec(
 		sin2 * mcos(v[1]),
 		sin2 * msin(v[1]),
