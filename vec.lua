@@ -1,5 +1,6 @@
 local ti = table.insert
 
+---Методы без префикса `__` изменяют первый операнд, иначе создают новый вектор
 ---Если размер второго операнда меньше первого, недостающие элементы будут заменены 0 или 1 в зависимости от операции
 ---@class vec : number[]
 ---@operator add (number[]):vec
@@ -855,11 +856,12 @@ end
 ---@param vec any
 ---@return string
 function M.tostring(vec)
+    local sf, tc = string.format, table.concat
 	local out = {}
 	for i = 1, #vec do
-		ti(out, string.format("%g", vec[i]))
+		ti(out, sf("%q", vec[i]))
 	end
-	return("{" .. table.concat(out, ",") .. "}")
+	return("{" .. tc(out, ",") .. "}")
 end
 
 M.__eq		= M.eq
