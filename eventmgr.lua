@@ -51,10 +51,19 @@ function eventmgr_class:rmCallback(callback)
 	else error("Bad callback type", 2) end
 end
 
----Рассылает переданные пргументы по списку рассылки
+---Фильтр по умолчанию. Вызывается перед рассылкой сообщения. Если возвращает
+---false, то сообщение не отправляется. Фильтр по умолчанию возвращает `enabled`
+---
+---При переопредилении этого метода стоит учесть работу `enabled` параметра.
+---@return boolean
+function eventmgr_class:filter()
+	return self.enabled
+end
+
+---Рассылает событие по списку рассылки, если `filter(...)` вернет `true`
 ---@param ... any?
 function eventmgr_class:send(...)
-	if self.enabled then
+	if self:filter(...) then
 		for callback_fn in pairs(self.callback_fns) do
 			local state, errmsg = xpcall(callback_fn, debug.traceback, ...)
 			if not state then
