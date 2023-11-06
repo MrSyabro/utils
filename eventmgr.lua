@@ -21,6 +21,8 @@ local cs, cr = coroutine.status, coroutine.resume
 уничтожатся в отличии от функций.]]
 ---@class Event : Object
 ---@operator call(...):nil #Рассылает событие по списку рассылки
+---@operator add(function|thread):Event
+---@operator sub(function|thread):Event
 ---@field name string #имя менеджера для дебага
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
 ---@field protected callback_ths table<thread, boolean> #список рутин колбеков
@@ -30,6 +32,7 @@ eventmgr_class.enabled = true
 
 ---Добавляет функцию или рутину в список рассылки `Event`
 ---@param callback function|thread
+---@return Event self
 function eventmgr_class:addCallback(callback)
 	local t = type(callback)
 	if t == "function" then
@@ -37,11 +40,14 @@ function eventmgr_class:addCallback(callback)
 	elseif t == "thread" then
 		self.callback_ths[callback] = true
 	else error("Bad callback type", 2) end
+
+	return self
 end
 eventmgr_class.__add = eventmgr_class.addCallback
 
 ---Удаляет функцию или рутину из списка рассылки `Event`
 ---@param callback function|thread
+---@return Event self
 function eventmgr_class:rmCallback(callback)
 	local t = type(callback)
 	if t == "function" then
@@ -50,6 +56,8 @@ function eventmgr_class:rmCallback(callback)
 		if cs(callback) == "dead" then error("Corutine already died", 2) end
 		self.callback_ths[callback] = nil
 	else error("Bad callback type", 2) end
+
+	return self
 end
 eventmgr_class.__sub = eventmgr_class.rmCallback
 
