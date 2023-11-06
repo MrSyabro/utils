@@ -38,6 +38,7 @@ function eventmgr_class:addCallback(callback)
 		self.callback_ths[callback] = true
 	else error("Bad callback type", 2) end
 end
+eventmgr_class.__add = eventmgr_class.addCallback
 
 ---Удаляет функцию или рутину из списка рассылки `Event`
 ---@param callback function|thread
@@ -50,6 +51,7 @@ function eventmgr_class:rmCallback(callback)
 		self.callback_ths[callback] = nil
 	else error("Bad callback type", 2) end
 end
+eventmgr_class.__sub = eventmgr_class.rmCallback
 
 ---Фильтр по умолчанию. Вызывается перед рассылкой сообщения. Если возвращает
 ---false, то сообщение не отправляется. Фильтр по умолчанию возвращает `enabled`
