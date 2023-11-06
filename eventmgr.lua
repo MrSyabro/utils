@@ -66,7 +66,7 @@ eventmgr_class.__sub = eventmgr_class.rmCallback
 ---
 ---При переопредилении этого метода стоит учесть работу `enabled` параметра.
 ---@return boolean
-function eventmgr_class:filter()
+function eventmgr_class:filter(...)
 	return self.enabled
 end
 

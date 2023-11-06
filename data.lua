@@ -3,6 +3,15 @@ local event = require "eventmgr"
 ---@class Data : table
 ---@field data_changed Event|fun(ket: any, data: any, old_data:any) #событие вызывается, когда данные в таблице меняются
 
+---Фильтр для данных. Блокирует отправку, если старые данные и новые равны
+local function data_changed_filter(self, k, v, ov)
+    if self.enabled and v ~= ov then
+        return true
+    else
+        return false
+    end
+end
+
 --[[Функция создает таблицу, которая умеет сообщать об изменении данных внутри себя
 	получить событие можно в поле `data_changed: EventManager` и ествественно оно
 	защищено от записи. ]]
@@ -28,6 +37,8 @@ return function()
             return serialize.fser(data, 3)
         end
     }
+
+    obj.data_changed.filter = data_changed_filter
 
     return setmetatable(obj, obj)
 end
