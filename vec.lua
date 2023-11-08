@@ -44,10 +44,13 @@ end
 
 ---Создает копию вектора
 ---@param vec number[]
+---@param size number?
 ---@return vec
-function M.copy(vec)
+function M.copy(vec, size)
     local newvec = setmetatable({}, M)
-    for i = 1, #vec do
+    if size then size = math.min(#vec, size)
+    else size = #vec end
+    for i = 1, size do
         newvec[i] = vec[i]
     end
     return newvec
