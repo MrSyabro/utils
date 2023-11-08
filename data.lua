@@ -15,10 +15,11 @@ end
 --[[Функция создает таблицу, которая умеет сообщать об изменении данных внутри себя
 	получить событие можно в поле `data_changed: EventManager` и ествественно оно
 	защищено от записи. ]]
+---@param t table таблица данных, если надо
 ---@return Data
-return function()
-    local data = {}
-    
+return function(t)
+    local data = t or {}
+
     local obj = {
         data_changed = event:new("Data_changed"),
         __pairs = function (self)
