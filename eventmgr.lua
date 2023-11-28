@@ -24,19 +24,31 @@ local cs, cr = coroutine.status, coroutine.resume
 ---@operator add(function|thread):Event
 ---@operator sub(function|thread):Event
 ---@field name string #имя менеджера для дебага
+---@field private weak boolean
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
 ---@field protected callback_ths table<thread, boolean> #список рутин колбеков
+---@field protected callback_objs table<table, table<fun(self:table, ...:any), boolean>> #список обьектов с методами
 local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
+eventmgr_class.weak = false
 
 ---Добавляет функцию или рутину в список рассылки `Event`
----@param callback function|thread
+---@param callback function|thread|table
+---@param method function?
 ---@return Event self
-function eventmgr_class:addCallback(callback)
+function eventmgr_class:addCallback(callback, method)
 	local t = type(callback)
 	if t == "function" then
 		self.callback_fns[callback] = true
+	elseif t == "table" then
+		if type(method) == "function" then
+			local obj_methods = self.callback_objs[obj] or (self.weak and setmetatable({}, self)) or {}
+			obj_methods[method] = true
+			self.callback_objs[obj] = obj_methods
+		elseif type(getmetatable(callback).__call) == "function" then
+			self.callback_fns[callback] = true
+		end
 	elseif t == "thread" then
 		self.callback_ths[callback] = true
 	else error("Bad callback type", 2) end
@@ -45,17 +57,19 @@ function eventmgr_class:addCallback(callback)
 end
 eventmgr_class.__add = eventmgr_class.addCallback
 
----Удаляет функцию или рутину из списка рассылки `Event`
----@param callback function|thread
+---Удаляет функцию, рутину или оьект из списка рассылки `Event`
+---@param callback function|thread|table
+---@param method fun(self:Object, ...:any)?
 ---@return Event self
-function eventmgr_class:rmCallback(callback)
-	local t = type(callback)
-	if t == "function" then
-		self.callback_fns[callback] = nil
-	elseif t == "thread" then
-		if cs(callback) == "dead" then error("Corutine already died", 2) end
-		self.callback_ths[callback] = nil
-	else error("Bad callback type", 2) end
+function eventmgr_class:rmCallback(callback, method)
+	self.callback_fns[callback] = nil
+	self.callback_ths[callback] = nil
+	if method then
+		local mthds = self.callback_objs[callback] --[[@as table<function, boolean?>]]
+		if mthds then
+			mthds[method] = nil
+		end
+	end
 
 	return self
 end
@@ -78,6 +92,23 @@ function eventmgr_class:send(...)
 			local state, errmsg = xpcall(callback_fn, debug.traceback, ...)
 			if not state then
 				warn(self.name, " Callback error: ", errmsg)
+			else
+				if errmsg == true then
+					self.callback_fns[callback_fn] = nil
+				end
+			end
+		end
+
+		for callback_obj, callback_mtds in pairs(self.callback_objs) do
+			for callback_mtd in pairs(callback_mtds) do
+				local state, errmsg = xpcall(callback_mtd, debug.traceback, callback_obj, ...)
+				if not state then
+					warn(self.name, " Callback error: ", errmsg)
+				else
+					if errmsg == true then
+						callback_mtds[callback_mtd] = nil
+					end
+				end
 			end
 		end
 
@@ -94,6 +125,9 @@ function eventmgr_class:send(...)
 end
 eventmgr_class.__call = eventmgr_class.send
 
+local mtds_mt = {__mode = "kv"}
+local weak_mt = {__mode = "k"}
+
 ---Создает экземпляр `Event`
 ---@param name string #имя для обработчика (по умолчанию Test)
 ---@param weak boolean? #делает список колбеков слабой таблицей
@@ -102,12 +136,12 @@ function eventmgr_class:new(name, weak)
 	local mgr = obj.new(self)
 	mgr.name = name
 	if weak then
-		mgr.__mode = "k"
-		mgr.callback_fns = setmetatable({}, mgr)
+		mgr.callback_fns = setmetatable({}, weak_mt)
 	else
 		mgr.callback_fns = {}
 	end
 	mgr.callback_ths = {}
+	mgr.callback_objs = setmetatable({}, mtds_mt)
 
 	return mgr
 end
