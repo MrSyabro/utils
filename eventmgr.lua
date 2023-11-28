@@ -2,6 +2,8 @@ local obj = require "obj"
 
 local cs, cr = coroutine.status, coroutine.resume
 
+local weak_mt = {__mode = "k"}
+
 --[[ ### Event - эмитатор событий
 `Event` принимает колбеки типов:
 - `function`
@@ -24,43 +26,52 @@ local cs, cr = coroutine.status, coroutine.resume
 ---@operator add(function|thread):Event
 ---@operator sub(function|thread):Event
 ---@field name string #имя менеджера для дебага
----@field private weak boolean
+---@field private weak boolean?
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
 ---@field protected callback_ths table<thread, boolean> #список рутин колбеков
----@field protected callback_objs table<table, table<fun(self:table, ...:any), boolean>> #список обьектов с методами
+---@field protected callback_objs table<any, table<fun(self:any, ...:any):boolean?, boolean>> #список обьектов с методами
 local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
 eventmgr_class.weak = false
 
----Добавляет функцию или рутину в список рассылки `Event`
----@param callback function|thread|table
----@param method function?
+---Добавляет функцию, рутину или метод объекта в список рассылки `Event`
+---@generic O : Object
+---@param callback O
+---@param method fun(self: O, ...: any): boolean?
 ---@return Event self
+---@overload fun(self:Event, callback:function|thread): Event
 function eventmgr_class:addCallback(callback, method)
 	local t = type(callback)
 	if t == "function" then
 		self.callback_fns[callback] = true
-	elseif t == "table" then
-		if type(method) == "function" then
-			local obj_methods = self.callback_objs[obj] or (self.weak and setmetatable({}, self)) or {}
-			obj_methods[method] = true
-			self.callback_objs[obj] = obj_methods
-		elseif type(getmetatable(callback).__call) == "function" then
-			self.callback_fns[callback] = true
-		end
 	elseif t == "thread" then
 		self.callback_ths[callback] = true
-	else error("Bad callback type", 2) end
+	else
+		if type(method) == "function" then
+			local obj_methods = self.callback_objs[callback]
+			if not obj_methods then
+				obj_methods = setmetatable({}, weak_mt)
+				self.callback_objs[callback] = obj_methods
+			end
+			obj_methods[method] = true
+		elseif type(getmetatable(callback).__call) == "function" then
+			self.callback_fns[callback] = true
+		else
+			error("Bad callback type", 2)
+		end
+	end
 
 	return self
 end
 eventmgr_class.__add = eventmgr_class.addCallback
 
----Удаляет функцию, рутину или оьект из списка рассылки `Event`
----@param callback function|thread|table
----@param method fun(self:Object, ...:any)?
+---Удаляет функцию, рутину или метод объект из списка рассылки `Event`
+---@generic O : Object
+---@param callback O
+---@param method fun(self: O, ...: any): boolean?
 ---@return Event self
+---@overload fun(self:Event, callback:function|thread): Event
 function eventmgr_class:rmCallback(callback, method)
 	self.callback_fns[callback] = nil
 	self.callback_ths[callback] = nil
@@ -125,9 +136,6 @@ function eventmgr_class:send(...)
 end
 eventmgr_class.__call = eventmgr_class.send
 
-local mtds_mt = {__mode = "kv"}
-local weak_mt = {__mode = "k"}
-
 ---Создает экземпляр `Event`
 ---@param name string #имя для обработчика (по умолчанию Test)
 ---@param weak boolean? #делает список колбеков слабой таблицей
@@ -135,13 +143,14 @@ local weak_mt = {__mode = "k"}
 function eventmgr_class:new(name, weak)
 	local mgr = obj.new(self)
 	mgr.name = name
+	mgr.weak = weak
 	if weak then
 		mgr.callback_fns = setmetatable({}, weak_mt)
 	else
 		mgr.callback_fns = {}
 	end
 	mgr.callback_ths = {}
-	mgr.callback_objs = setmetatable({}, mtds_mt)
+	mgr.callback_objs = setmetatable({}, weak_mt)
 
 	return mgr
 end
