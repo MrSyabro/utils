@@ -29,7 +29,7 @@ local weak_mt = {__mode = "k"}
 ---@field private weak boolean?
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
 ---@field protected callback_ths table<thread, boolean> #список рутин колбеков
----@field protected callback_objs table<any, table<fun(self:any, ...:any):boolean?, boolean>> #список обьектов с методами
+---@field protected callback_objs table<any, fun(self:any, ...:any):boolean?> #список обьектов с методами
 local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
@@ -49,12 +49,7 @@ function eventmgr_class:addCallback(callback, method)
 		self.callback_ths[callback] = true
 	else
 		if type(method) == "function" then
-			local obj_methods = self.callback_objs[callback]
-			if not obj_methods then
-				obj_methods = setmetatable({}, weak_mt)
-				self.callback_objs[callback] = obj_methods
-			end
-			obj_methods[method] = true
+			self.callback_objs[callback] = method
 		elseif type(getmetatable(callback).__call) == "function" then
 			self.callback_fns[callback] = true
 		else
@@ -72,15 +67,10 @@ eventmgr_class.__add = eventmgr_class.addCallback
 ---@param method fun(self: O, ...: any): boolean?
 ---@return Event self
 ---@overload fun(self:Event, callback:function|thread): Event
-function eventmgr_class:rmCallback(callback, method)
+function eventmgr_class:rmCallback(callback)
 	self.callback_fns[callback] = nil
 	self.callback_ths[callback] = nil
-	if method then
-		local mthds = self.callback_objs[callback] --[[@as table<function, boolean?>]]
-		if mthds then
-			mthds[method] = nil
-		end
-	end
+	self.callback_objs[callback] = nil
 
 	return self
 end
@@ -110,15 +100,13 @@ function eventmgr_class:send(...)
 			end
 		end
 
-		for callback_obj, callback_mtds in pairs(self.callback_objs) do
-			for callback_mtd in pairs(callback_mtds) do
-				local state, errmsg = xpcall(callback_mtd, debug.traceback, callback_obj, ...)
-				if not state then
-					warn(self.name, " Callback error: ", errmsg)
-				else
-					if errmsg == true then
-						callback_mtds[callback_mtd] = nil
-					end
+		for callback_obj, callback_mtd in pairs(self.callback_objs) do
+			local state, errmsg = xpcall(callback_mtd, debug.traceback, callback_obj, ...)
+			if not state then
+				warn(self.name, " Callback error: ", errmsg)
+			else
+				if errmsg == true then
+					self.callback_objs[callback_obj] = nil
 				end
 			end
 		end
