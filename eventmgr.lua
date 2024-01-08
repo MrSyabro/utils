@@ -36,7 +36,7 @@ eventmgr_class.enabled = true
 eventmgr_class.weak = false
 
 ---Добавляет функцию, рутину или метод объекта в список рассылки `Event`
----@generic O : Object
+---@generic O
 ---@param callback O
 ---@param method fun(self: O, ...: any): boolean?
 ---@return Event self
@@ -62,11 +62,8 @@ end
 eventmgr_class.__add = eventmgr_class.addCallback
 
 ---Удаляет функцию, рутину или метод объект из списка рассылки `Event`
----@generic O : Object
----@param callback O
----@param method fun(self: O, ...: any): boolean?
+---@param callback any
 ---@return Event self
----@overload fun(self:Event, callback:function|thread): Event
 function eventmgr_class:rmCallback(callback)
 	self.callback_fns[callback] = nil
 	self.callback_ths[callback] = nil
