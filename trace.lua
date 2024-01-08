@@ -1,6 +1,5 @@
 ---@class traceinfo : debuginfo
 ---@field id number
----@field callcount number количество вызовов
 ---@field start number вспомогательная переменная
 ---@field clock number время работы функции
 ---@field full_clock number полное время работы за все вызовы
@@ -52,7 +51,6 @@ local function hook(hook_type)
 	if hook_type == "call" then
 		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
-			storedinfo.start = oc()
 			if secondti then
 				local second_sti = funcs_list[secondti.func]
 				if second_sti then
@@ -60,10 +58,14 @@ local function hook(hook_type)
 					local calls = storedinfo.callers[sid] or 0
 					storedinfo.callers[sid] = calls + 1
 				end
+			else
+				local calls = storedinfo.callers['C'] or 0
+				storedinfo.callers['C'] = calls + 1
 			end
-		elseif traceinfo.short_src ~= "[C]" then
-			traceinfo.start = oc()
+			storedinfo.start = oc()
+		else
 			traceinfo.full_clock = 0
+			traceinfo.clock = 0
 			traceinfo.source = nil
 			traceinfo.lastlinedefined = nil
 			traceinfo.callers = {}
@@ -72,10 +74,13 @@ local function hook(hook_type)
 				if ti2 then
 					traceinfo.callers[ti2.id] = 1
 				end
+			else
+				traceinfo.callers['C'] = 1
 			end
 			funcs_count = funcs_count + 1
 			traceinfo.id = funcs_count
 			funcs_list[curr_func] = traceinfo
+			traceinfo.start = oc()
 		end
 	elseif hook_type == "return" then
 		local storedinfo = funcs_list[curr_func]
@@ -88,20 +93,26 @@ local function hook(hook_type)
 end
 
 ---Запускает трассировки всех вызовов
----@return unknown
 function M.start()
-	return dsh(hook, "cr")
+	dsh(hook, "cr")
 end
 
 ---Останавливает трассировку
 function M.stop()
-	return dsh()
+	dsh()
 end
 
 ---Возвращает сериализованную таблицу трассировки
 ---@return string
 function M.dump()
 	return serialize_funcs(funcs_list)
+end
+
+---Сбрасывает статистику трассировщика
+function M.reset()
+	funcs_list = {}
+	M.funcs_list = funcs_list
+	funcs_count = 0
 end
 
 return M
