@@ -51,7 +51,7 @@ function M.copy(vec, size)
     if size then size = math.min(#vec, size)
     else size = #vec end
     for i = 1, size do
-        newvec[i] = vec[i]
+        newvec[i] = vec[i] or 0
     end
     return newvec
 end
@@ -763,6 +763,13 @@ local mmax, mmin, ms = math.max, math.min, math.sqrt
 function M.len(vec)
     local sum = M.sum(M.__pownum(vec, 2))
     return ms(sum)
+end
+
+---Квадрат длинны вектора
+---@param vec number[]
+---@return number
+function M.len_sqr(vec)
+	return M.sum(M.__pownum(vec, 2))
 end
 
 ---Сумма всех элементов вектора

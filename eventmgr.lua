@@ -1,6 +1,7 @@
 local obj = require "obj"
 
 local cs, cr = coroutine.status, coroutine.resume
+local dtb = debug.traceback
 
 local weak_mt = {__mode = "k"}
 
@@ -62,8 +63,10 @@ end
 eventmgr_class.__add = eventmgr_class.addCallback
 
 ---Удаляет функцию, рутину или метод объект из списка рассылки `Event`
----@param callback any
+---@generic O
+---@param callback O
 ---@return Event self
+---@overload fun(self:Event, callback:function|thread): Event
 function eventmgr_class:rmCallback(callback)
 	self.callback_fns[callback] = nil
 	self.callback_ths[callback] = nil
@@ -87,7 +90,7 @@ end
 function eventmgr_class:send(...)
 	if self:filter(...) then
 		for callback_fn in pairs(self.callback_fns) do
-			local state, errmsg = xpcall(callback_fn, debug.traceback, ...)
+			local state, errmsg = xpcall(callback_fn, dtb, ...)
 			if not state then
 				warn(self.name, " Callback error: ", errmsg)
 			else
@@ -98,7 +101,7 @@ function eventmgr_class:send(...)
 		end
 
 		for callback_obj, callback_mtd in pairs(self.callback_objs) do
-			local state, errmsg = xpcall(callback_mtd, debug.traceback, callback_obj, ...)
+			local state, errmsg = xpcall(callback_mtd, dtb, callback_obj, ...)
 			if not state then
 				warn(self.name, " Callback error: ", errmsg)
 			else
@@ -111,7 +114,7 @@ function eventmgr_class:send(...)
 		for callback_th in pairs(self.callback_ths) do
 			local state, errmsg = cr(callback_th, ...)
 			if not state then
-				warn(self.name, " Callback error: ", errmsg or "in coroutine")
+				warn(debug.traceback(callback_th, ("[%s] Callback error: %s"):format(self.name, errmsg or "in coroutine")))
 				self.callback_ths[callback_th] = nil
 			elseif cs(callback_th) == "dead" then
 				self.callback_ths[callback_th] = nil

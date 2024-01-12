@@ -1,9 +1,7 @@
 ---@class traceinfo : debuginfo
 ---@field id number
 ---@field start number вспомогательная переменная
----@field clock number время работы функции
----@field full_clock number полное время работы за все вызовы
----@field callers number[] количество вызовов из каждой функции
+---@field callers table<number|"C", {calls:number, clock: number, maxclock: number, fullclock: number}> количество вызовов из каждой функции
 
 local M = {}
 
@@ -11,6 +9,7 @@ local tbc, tbi = table.concat, table.insert
 local dgi, dsh = debug.getinfo, debug.sethook
 local sf = string.format
 local oc = os.clock
+local mmax = math.max
 
 local funcs_count = 0
 ---@type table<function, traceinfo> таблица данных трассировки
@@ -22,8 +21,10 @@ local function serialize_traceinfo(traceinfo)
 	for k, v in pairs(traceinfo) do
 		if k == "callers" then
 			tbi(out, "callers={")
-			for fid, count in pairs(v) do
-				tbi(out, sf("[%d]=%d,", fid, count))
+			for fid, backtrace in pairs(v) do
+				for key, value in pairs(backtrace) do
+					tbi(out, sf("%s=%d,", key, value))
+				end
 			end
 			tbi(out, "},")
 		elseif k ~= "func" and k ~= "start" then
@@ -51,32 +52,43 @@ local function hook(hook_type)
 	if hook_type == "call" then
 		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
+			local sid = 'C'
 			if secondti then
 				local second_sti = funcs_list[secondti.func]
 				if second_sti then
-					local sid = second_sti.id
-					local calls = storedinfo.callers[sid] or 0
-					storedinfo.callers[sid] = calls + 1
+					sid = second_sti.id
 				end
-			else
-				local calls = storedinfo.callers['C'] or 0
-				storedinfo.callers['C'] = calls + 1
 			end
+			local backtrace = storedinfo.callers[sid]
+			if not backtrace then
+				backtrace = {
+					maxclock = 0,
+					fullclock = 0,
+					calls = 1
+				}
+				storedinfo.callers[sid] = backtrace
+			end
+			local calls = backtrace.calls
+			backtrace.calls = calls + 1
 			storedinfo.start = oc()
 		else
-			traceinfo.full_clock = 0
-			traceinfo.clock = 0
 			traceinfo.source = nil
 			traceinfo.lastlinedefined = nil
 			traceinfo.callers = {}
+			local sid = 'C'
 			if secondti then
-				local ti2 = funcs_list[secondti.func]
-				if ti2 then
-					traceinfo.callers[ti2.id] = 1
+				local storedinfo = funcs_list[secondti.func]
+				if storedinfo then
+					sid = storedinfo.id
 				end
-			else
-				traceinfo.callers['C'] = 1
 			end
+			traceinfo.callers[sid] = {
+				clock = 0,
+				maxclock = 0,
+				fullclock = 0,
+				calls = 1
+			}
+
 			funcs_count = funcs_count + 1
 			traceinfo.id = funcs_count
 			funcs_list[curr_func] = traceinfo
@@ -85,8 +97,27 @@ local function hook(hook_type)
 	elseif hook_type == "return" then
 		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
-			storedinfo.clock = oc() - storedinfo.start
-			storedinfo.full_clock = storedinfo.full_clock + storedinfo.clock
+			local clock = oc() - storedinfo.start
+			local sid = 'C'
+			if secondti then
+				local second_sti = funcs_list[secondti.func]
+				if second_sti then
+					sid = second_sti.id
+				end
+			end
+			local backtrace = storedinfo.callers[sid]
+			if not backtrace then
+				backtrace = {
+					clock = 0,
+					maxclock = 0,
+					fullclock = 0,
+					calls = 1
+				}
+				storedinfo.callers[sid] = backtrace
+			end
+			backtrace.maxclock = mmax(backtrace.maxclock, clock)
+			backtrace.clock = clock
+			backtrace.fullclock = backtrace.fullclock + clock
 		end
 	end
 	return dsh(hook, "cr")
