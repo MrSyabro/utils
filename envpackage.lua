@@ -48,7 +48,12 @@ function package_class:load(name)
 			table.insert(err, path)
 		end
 	end
-	error(table.concat(err, "\n\t"), 3)
+	error(table.concat(err, "\n\t"), 2)
+end
+
+function package_class:dofile(filename)
+	local f = assert(loadfile(filename, "bt", self.env))
+	return f()
 end
 
 function package_class:new()
@@ -66,6 +71,9 @@ function package_class:new()
 		__index = self.env,
 		package = new_instance,
 		require = require,
+		dofile = function(filename)
+			return new_instance:dofile(filename)
+		end
 	}
 	new_instance.env = setmetatable(env, env)
 
