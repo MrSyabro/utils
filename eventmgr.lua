@@ -29,7 +29,6 @@ local weak_mt = {__mode = "k"}
 ---@field name string #имя менеджера для дебага
 ---@field private weak boolean?
 ---@field protected callback_fns table<function, boolean> #список функций колбеков
----@field protected callback_ths table<thread, boolean> #список рутин колбеков
 ---@field protected callback_objs table<any, fun(self:any, ...:any):boolean?> #список обьектов с методами
 local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
@@ -37,17 +36,15 @@ eventmgr_class.enabled = true
 eventmgr_class.weak = false
 
 ---Добавляет функцию, рутину или метод объекта в список рассылки `Event`
----@generic O
+---@generic O : Object
 ---@param callback O
 ---@param method fun(self: O, ...: any): boolean?
 ---@return Event self
----@overload fun(self:Event, callback:function|thread): Event
+---@overload fun(self:Event, callback:function): Event
 function eventmgr_class:addCallback(callback, method)
 	local t = type(callback)
 	if t == "function" then
 		self.callback_fns[callback] = true
-	elseif t == "thread" then
-		self.callback_ths[callback] = true
 	else
 		if type(method) == "function" then
 			self.callback_objs[callback] = method
@@ -63,13 +60,12 @@ end
 eventmgr_class.__add = eventmgr_class.addCallback
 
 ---Удаляет функцию, рутину или метод объект из списка рассылки `Event`
----@generic O
+---@generic O : Object
 ---@param callback O
 ---@return Event self
----@overload fun(self:Event, callback:function|thread): Event
+---@overload fun(self:Event, callback:function): Event
 function eventmgr_class:rmCallback(callback)
 	self.callback_fns[callback] = nil
-	self.callback_ths[callback] = nil
 	self.callback_objs[callback] = nil
 
 	return self
@@ -110,16 +106,6 @@ function eventmgr_class:send(...)
 				end
 			end
 		end
-
-		for callback_th in pairs(self.callback_ths) do
-			local state, errmsg = cr(callback_th, ...)
-			if not state then
-				warn(debug.traceback(callback_th, ("[%s] Callback error: %s"):format(self.name, errmsg or "in coroutine")))
-				self.callback_ths[callback_th] = nil
-			elseif cs(callback_th) == "dead" then
-				self.callback_ths[callback_th] = nil
-			end
-		end
 	end
 end
 eventmgr_class.__call = eventmgr_class.send
@@ -137,7 +123,6 @@ function eventmgr_class:new(name, weak)
 	else
 		mgr.callback_fns = {}
 	end
-	mgr.callback_ths = {}
 	mgr.callback_objs = setmetatable({}, weak_mt)
 
 	return mgr

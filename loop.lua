@@ -18,7 +18,7 @@ function loopclass:step()
         elseif cs(thread) == "dead" then
             self.pool[thread] = nil
         end
-        if (os.clock() - c) > loopclass.time then print("ABOBA") return end
+        if (os.clock() - c) > loopclass.time then return end
     end
 end
 

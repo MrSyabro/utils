@@ -6,6 +6,7 @@ local obj = require "obj"
 ---@field searchers table
 ---@field preload table
 ---@field config string
+---@field env table
 local package_class = obj:new "Package"
 package_class.path = package.path
 package_class.searchpath = package.searchpath
