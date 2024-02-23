@@ -45,15 +45,14 @@ function loopclass:acall(func, ...)
 		table.remove(out, 1)
 		return tu(out)
 	else
-		return false, out[2]
+		return false, debug.traceback(newth, out[2])
 	end
 end
 
 ---Функция аналогична coroutine.wrap, возращает, которая вызовет loop:acall(func)
 ---@param func function
----@param ... any
 ---@return function wrap
-function loopclass:awrap(func, ...)
+function loopclass:awrap(func)
 	return function(...)
 		return self:acall(func, ...)
 	end
