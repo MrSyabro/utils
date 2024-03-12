@@ -2,10 +2,11 @@ local obj = require "obj"
 
 local cr, cs, cy = coroutine.resume, coroutine.status, coroutine.yield
 local tp, tu = table.pack, table.unpack
+local osc = os.clock
 
 ---@class ThreadData
 ---@field weight number
----@field curweight number
+---@field clock number
 
 ---@class Loop : Object
 ---@field pool table<thread, ThreadData>
@@ -13,10 +14,14 @@ local tp, tu = table.pack, table.unpack
 ---@field	thread thread
 ---@field name string?
 local loopclass = obj:new "Loop"
-loopclass.time = 0.005
+loopclass.time = 0.003
+loopclass.weights = 0
 
 function loopclass:step()
-	assert(cr(self.thread, self))
+	local s, e = cr(self.thread, self)
+	if s == false then
+		log:error(e)
+	end
 end
 
 ---Регистрирует новую нить в пуле
@@ -24,10 +29,12 @@ end
 ---@param weight number
 function loopclass:register(thread, weight)
 	if type(thread) ~= "thread" then error("Bad thread type", 2) end
+ 	weight = weight or 5
 	self.pool[thread] = {
-		weight = weight or 0,
-		curweight = weight or 0,
+		weight = weight,
+		clock = 0,
 	}
+	self.weights = self.weights + weight
 end
 
 ---Вызывает функцию с аргументами обернув в рутину. Возвращает результат первого вызова resume
@@ -41,9 +48,10 @@ function loopclass:acall(func, ...)
 	if out[1] then
 		if cs(newth) == "suspended" then
 			self.pool[newth] = {
-				weight = 0,
-				curweight = 0,
+				weight = 5,
+				clock = 0,
 			}
+			self.weights = self.weights + 5
 		end
 		table.remove(out, 1)
 		return tu(out)
@@ -68,6 +76,7 @@ function loopclass:pause(th)
 	if data then
 		self.pool[th] = nil
 		self.pausedpool[th] = data
+		self.weights = self.weights - data.weight
 	end
 end
 
@@ -78,33 +87,37 @@ function loopclass:run(th)
 	if data then
 		self.pausedpool[th] = nil
 		self.pool[th] = data
+		self.weights = self.weights + data.weight
 	end
+end
+
+local function process_thread(self, thread, thread_data)
+	local weight = thread_data.weight
+	while thread_data.clock < (self.time / self.weights * weight) do
+		local c2 = osc()
+		local state, errmsg = cr(thread)
+		if not state then
+			warn(debug.traceback(thread,
+				("[%s] Callback error: %s"):format(self.name or "Loop",
+					errmsg or "in coroutine")))
+			self.pool[thread] = nil
+			self.weights = self.weights - weight
+			return
+		elseif cs(thread) == "dead" then
+			self.pool[thread] = nil
+			self.weights = self.weights - weight
+			return
+		end
+		thread_data.clock = thread_data.clock + (osc() - c2)
+	end
+	thread_data.clock = 0
 end
 
 local function process_loop(self)
 	while true do
-		local c = os.clock()
-		local time = self.time
+		if self.weights == 0 then cy() end
 		for thread, thread_data in pairs(self.pool) do
-			local curw = thread_data.curweight
-			if curw > 0 then
-				thread_data.curweight = curw - 1
-			else
-				local state, errmsg = cr(thread)
-				if not state then
-					warn(debug.traceback(thread,
-						("[%s] Callback error: %s"):format(self.name or "Loop",
-							errmsg or "in coroutine")))
-					self.pool[thread] = nil
-				elseif cs(thread) == "dead" then
-					self.pool[thread] = nil
-				end
-				thread_data.curweight = thread_data.weight
-			end
-			if (os.clock() - c) > time then
-				cy()
-				c = os.clock()
-			end
+			process_thread(self, thread, thread_data)
 		end
 		cy()
 	end
