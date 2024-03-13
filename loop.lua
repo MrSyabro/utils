@@ -7,10 +7,13 @@ local osc = os.clock
 ---@class ThreadData
 ---@field weight number
 ---@field clock number
+---@field paused boolean?
 
 ---@class Loop : Object
 ---@field pool table<thread, ThreadData>
 ---@field pausedpool table<thread, ThreadData>
+---@field weights number сумма весов всех задач
+---@field current thread
 ---@field	thread thread
 ---@field name string?
 local loopclass = obj:new "Loop"
@@ -76,6 +79,7 @@ function loopclass:pause(th)
 	if data then
 		self.pool[th] = nil
 		self.pausedpool[th] = data
+		data.paused = true
 		self.weights = self.weights - data.weight
 	end
 end
@@ -87,13 +91,16 @@ function loopclass:run(th)
 	if data then
 		self.pausedpool[th] = nil
 		self.pool[th] = data
+		data.paused = nil
 		self.weights = self.weights + data.weight
 	end
 end
 
 local function process_thread(self, thread, thread_data)
 	local weight = thread_data.weight
-	while thread_data.clock < (self.time / self.weights * weight) do
+	while not thread_data.paused
+		and thread_data.clock < (self.time / self.weights * weight)
+	do
 		local c2 = osc()
 		local state, errmsg = cr(thread)
 		if not state then
@@ -115,9 +122,11 @@ end
 
 local function process_loop(self)
 	while true do
-		if self.weights == 0 then cy() end
-		for thread, thread_data in pairs(self.pool) do
-			process_thread(self, thread, thread_data)
+		if self.weights > 0 then
+			for thread, thread_data in pairs(self.pool) do
+				self.current = thread
+				process_thread(self, thread, thread_data)
+			end
 		end
 		cy()
 	end
@@ -131,6 +140,7 @@ function loopclass:new(data)
 	local loop = obj.new(loopclass, nil, data) --[[@as Loop]]
 
 	loop.pool = {}
+	loop.pausedpool = {}
 	loop.thread = coroutine.create(process_loop)
 
 	return loop
