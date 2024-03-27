@@ -1,69 +1,93 @@
 local obj = require "obj"
 
-local cr, cs, cy = coroutine.resume, coroutine.status, coroutine.yield
+local cr, cs, cy, cc = coroutine.resume, coroutine.status, coroutine.yield, coroutine.close
 local tp, tu = table.pack, table.unpack
 local osc = os.clock
 
 ---@class ThreadData
 ---@field weight number
----@field clock number
 ---@field paused boolean?
+---@field awaits table<thread, boolean>
 
 ---@class Loop : Object
----@field pool table<thread, ThreadData>
+---@field pools table<thread, ThreadData>[]
+---@field next_pool number указывает на следующий рабочий пул
 ---@field pausedpool table<thread, ThreadData>
 ---@field weights number сумма весов всех задач
 ---@field current thread
 ---@field	thread thread
 ---@field name string?
 local loopclass = obj:new "Loop"
-loopclass.time = 0.003
+loopclass.time = 0.005
 loopclass.weights = 0
-
-function loopclass:step()
-	local s, e = cr(self.thread, self)
-	if s == false then
-		log:error(e)
-	end
-end
+loopclass.next_pool = 1
 
 ---Регистрирует новую нить в пуле
 ---@param thread thread
----@param weight number
+---@param weight number?
 function loopclass:register(thread, weight)
 	if type(thread) ~= "thread" then error("Bad thread type", 2) end
- 	weight = weight or 5
-	self.pool[thread] = {
+	if not weight then
+		local cth = self.current
+		local cthd = self.pools[1][cth] or self.pools[2][cth] or self.pausedpool[cth]
+		weight = cthd and cthd.weight or 5
+	end
+	self.pools[self.next_pool][thread] = {
 		weight = weight,
 		clock = 0,
+		awaits = {},
 	}
 	self.weights = self.weights + weight
 end
 
----Вызывает функцию с аргументами обернув в рутину. Возвращает результат первого вызова resume
+---Удаляет рутину из пулов
+---@param th thread
+function loopclass:remove(th)
+	local pools = self.pools
+	local thd = pools[1][th] or pools[2][th]
+	if thd then
+		pools[1][th] = nil
+		pools[2][th] = nil
+		self.weights = self.weights - thd.weight
+		for pth in pairs(thd.awaits) do
+			self:run(pth)
+		end
+		return
+	end
+	local thd = self.pausedpool[th]
+	if thd then
+		self.pausedpool[th] = nil
+		for pth in pairs(thd.awaits) do
+			self:run(pth)
+		end
+		return
+	end
+	cc(th)
+end
+
+---Вызывает функцию с аргументами обернув в рутину. Возвращает результат первого вызова `coroutine.resume` или сообщяет об ошибке в `warn`
 ---@param func function
 ---@param ... any
----@return boolean success успешен ли первый вызов resume
----@return any ...
+---@return any ... если до первого пререключения контекста произойдет ошибка, первый результат будет false, второй - ошибка, иначе все, что вернет первый `coroutine.resume`
 function loopclass:acall(func, ...)
+	if type(func) ~= "function" then error("Bad function type", 2) end
 	local newth = coroutine.create(func)
+	self:register(newth)
+	self.current = newth
 	local out = tp(cr(newth, ...))
 	if out[1] then
-		if cs(newth) == "suspended" then
-			self.pool[newth] = {
-				weight = 5,
-				clock = 0,
-			}
-			self.weights = self.weights + 5
+		if cs(newth) == "dead" then
+			self:remove(newth)
 		end
 		table.remove(out, 1)
 		return tu(out)
 	else
-		return false, debug.traceback(newth, out[2])
+		self:remove(newth)
+		warn(debug.traceback(newth, out[2]))
 	end
 end
 
----Функция аналогична coroutine.wrap, возращает, которая вызовет loop:acall(func)
+---Функция аналогична coroutine.wrap, возращает функцию, которая вызовет loop:acall(func)
 ---@param func function
 ---@return function wrap
 function loopclass:awrap(func)
@@ -72,15 +96,29 @@ function loopclass:awrap(func)
 	end
 end
 
----Перекидывает из работающих в отдыхающие
+---Ставит поток на паузу, пока выполняется другой
 ---@param th thread
+function loopclass:await(th)
+	local thd = assert(self.pools[1][th] or self.pools[2][th], "Thread not registered or paused")
+	local cth = self.current
+	thd.awaits[cth] = true
+	self:pause(cth)
+	cy()
+end
+
+---Отправляет поток пока не будет вызвано `run`
+---@param th thread если не указано, использует выполняющийся на данный момент поток
 function loopclass:pause(th)
-	local data = self.pool[th]
-	if data then
-		self.pool[th] = nil
+	local pools = self.pools
+	local data = pools[1][th] or pools[2][th]
+	if data and not data.paused then
+		pools[1][th] = nil
+		pools[2][th] = nil
 		self.pausedpool[th] = data
 		data.paused = true
 		self.weights = self.weights - data.weight
+	elseif not self.pausedpool[th] then
+		error("Thread not register")
 	end
 end
 
@@ -90,40 +128,46 @@ function loopclass:run(th)
 	local data = self.pausedpool[th]
 	if data then
 		self.pausedpool[th] = nil
-		self.pool[th] = data
+		self.pools[self.next_pool][th] = data
 		data.paused = nil
 		self.weights = self.weights + data.weight
 	end
 end
 
+---@param self Loop
+---@param thread thread
+---@param thread_data ThreadData
 local function process_thread(self, thread, thread_data)
-	local weight = thread_data.weight
-	while not thread_data.paused
-		and thread_data.clock < (self.time / self.weights * weight)
-	do
+	local maxclock = self.time / self.weights * thread_data.weight
+	local cclock = 0
+	repeat
 		local c2 = osc()
 		local state, errmsg = cr(thread)
+		cclock = cclock + (osc() - c2)
 		if not state then
-			warn(debug.traceback(thread,
-				("[%s] Callback error: %s"):format(self.name or "Loop",
-					errmsg or "in coroutine")))
-			self.pool[thread] = nil
-			self.weights = self.weights - weight
-			return
-		elseif cs(thread) == "dead" then
-			self.pool[thread] = nil
-			self.weights = self.weights - weight
+			self:remove(thread)
+			if errmsg ~= "cannot resume dead coroutine" then
+				warn(debug.traceback(thread,
+					("[%s] Callback error: %s"):format(self.name or "Loop",
+						errmsg or "in coroutine")))
+			end
 			return
 		end
-		thread_data.clock = thread_data.clock + (osc() - c2)
-	end
-	thread_data.clock = 0
+	until thread_data.paused or cclock > maxclock
 end
 
+---@param self Loop
 local function process_loop(self)
 	while true do
 		if self.weights > 0 then
-			for thread, thread_data in pairs(self.pool) do
+			self.next_pool = 2
+			for thread, thread_data in pairs(self.pools[1]) do
+				self.current = thread
+				process_thread(self, thread, thread_data)
+			end
+
+			self.next_pool = 1
+			for thread, thread_data in pairs(self.pools[2]) do
 				self.current = thread
 				process_thread(self, thread, thread_data)
 			end
@@ -132,14 +176,22 @@ local function process_loop(self)
 	end
 end
 
+function loopclass:step()
+	local s, e = cr(self.thread, self)
+	if s == false then
+		warn(e)
+		self.thread = coroutine.create(process_loop)
+	end
+end
+
 ---Создает новый пул нитей
 ---@param data string|table?
 ---@return Loop
 function loopclass:new(data)
-	if type(data) == "string" then data = { name = data } end
+	if type(data) == "string" then data = { __name = data } end
 	local loop = obj.new(loopclass, nil, data) --[[@as Loop]]
 
-	loop.pool = {}
+	loop.pools = {{},{}}
 	loop.pausedpool = {}
 	loop.thread = coroutine.create(process_loop)
 
