@@ -11,14 +11,14 @@ local osc = os.clock
 
 ---@class Loop : Object
 ---@field pools table<thread, ThreadData>[]
+---@field funcindexes table<function, thread>
 ---@field next_pool number указывает на следующий рабочий пул
 ---@field pausedpool table<thread, ThreadData>
 ---@field weights number сумма весов всех задач
----@field current thread
----@field	thread thread
+---@field thread thread
 ---@field name string?
 local loopclass = obj:new "Loop"
-loopclass.time = 0.005
+loopclass.time = 0.003
 loopclass.weights = 0
 loopclass.next_pool = 1
 
@@ -28,7 +28,7 @@ loopclass.next_pool = 1
 function loopclass:register(thread, weight)
 	if type(thread) ~= "thread" then error("Bad thread type", 2) end
 	if not weight then
-		local cth = self.current
+		local cth = coroutine.running()
 		local cthd = self.pools[1][cth] or self.pools[2][cth] or self.pausedpool[cth]
 		weight = cthd and cthd.weight or 5
 	end
@@ -73,7 +73,6 @@ function loopclass:acall(func, ...)
 	if type(func) ~= "function" then error("Bad function type", 2) end
 	local newth = coroutine.create(func)
 	self:register(newth)
-	self.current = newth
 	local out = tp(cr(newth, ...))
 	if out[1] then
 		if cs(newth) == "dead" then
@@ -100,7 +99,7 @@ end
 ---@param th thread
 function loopclass:await(th)
 	local thd = assert(self.pools[1][th] or self.pools[2][th], "Thread not registered or paused")
-	local cth = self.current
+	local cth = coroutine.running()
 	thd.awaits[cth] = true
 	self:pause(cth)
 	cy()
@@ -122,16 +121,19 @@ function loopclass:pause(th)
 	end
 end
 
----Перекидывает из отдыхающих в работающие
+---Возвращает состояние пуаузы потока
 ---@param th thread
-function loopclass:run(th)
+---@return boolean
+function loopclass:ispause(th)
 	local data = self.pausedpool[th]
-	if data then
-		self.pausedpool[th] = nil
-		self.pools[self.next_pool][th] = data
-		data.paused = nil
-		self.weights = self.weights + data.weight
-	end
+	return(data ~= nil)
+end
+
+---Закрываает все потоки всех пулов
+function loopclass:destroy()
+	for th in pairs(self.pools[1]) do cc(th) end
+	for th in pairs(self.pools[2]) do cc(th) end
+	for th in pairs(self.pausedpool) do cc(th) end
 end
 
 ---@param self Loop
@@ -156,19 +158,31 @@ local function process_thread(self, thread, thread_data)
 	until thread_data.paused or cclock > maxclock
 end
 
+---Перекидывает из отдыхающих в работающие, тут же выполняет поток
+---@param th thread
+function loopclass:run(th)
+	local data = self.pausedpool[th]
+	if data then
+		self.pausedpool[th] = nil
+		self.pools[self.next_pool][th] = data
+		data.paused = nil
+		self.weights = self.weights + data.weight
+
+		process_thread(self, th, data)
+	end
+end
+
 ---@param self Loop
 local function process_loop(self)
 	while true do
 		if self.weights > 0 then
 			self.next_pool = 2
 			for thread, thread_data in pairs(self.pools[1]) do
-				self.current = thread
 				process_thread(self, thread, thread_data)
 			end
 
 			self.next_pool = 1
 			for thread, thread_data in pairs(self.pools[2]) do
-				self.current = thread
 				process_thread(self, thread, thread_data)
 			end
 		end
@@ -179,7 +193,7 @@ end
 function loopclass:step()
 	local s, e = cr(self.thread, self)
 	if s == false then
-		warn(e)
+		warn(debug.traceback(self.thread, e))
 		self.thread = coroutine.create(process_loop)
 	end
 end
