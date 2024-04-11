@@ -190,6 +190,17 @@ function loopclass:step()
 	end
 end
 
+---Запускает луп как главный в бесконечном цикле. Также создает метод остановки `loopclass:exit`, останавливающий цикл.
+function loopclass:main()
+	local work = true
+	function self:exit()
+		work = false
+	end
+	while work do
+		self:step()
+	end
+end
+
 ---Создает новый пул нитей
 ---@param data string|table?
 ---@return Loop
