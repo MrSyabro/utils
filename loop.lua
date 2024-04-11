@@ -1,4 +1,5 @@
 local obj = require "obj"
+local rst = require "relocsafetab"
 
 local cr, cs, cy, cc = coroutine.resume, coroutine.status, coroutine.yield, coroutine.close
 local tp, tu = table.pack, table.unpack
@@ -10,7 +11,7 @@ local osc = os.clock
 ---@field awaits table<thread, boolean>
 
 ---@class Loop : Object
----@field pools table<thread, ThreadData>[]
+---@field pool table<thread, ThreadData>
 ---@field funcindexes table<function, thread>
 ---@field next_pool number указывает на следующий рабочий пул
 ---@field pausedpool table<thread, ThreadData>
@@ -29,10 +30,10 @@ function loopclass:register(thread, weight)
 	if type(thread) ~= "thread" then error("Bad thread type", 2) end
 	if not weight then
 		local cth = coroutine.running()
-		local cthd = self.pools[1][cth] or self.pools[2][cth] or self.pausedpool[cth]
+		local cthd = self.pool[cth] or self.pool[cth] or self.pausedpool[cth]
 		weight = cthd and cthd.weight or 5
 	end
-	self.pools[self.next_pool][thread] = {
+	self.pool[thread] = {
 		weight = weight,
 		clock = 0,
 		awaits = {},
@@ -43,11 +44,10 @@ end
 ---Удаляет рутину из пулов
 ---@param th thread
 function loopclass:remove(th)
-	local pools = self.pools
-	local thd = pools[1][th] or pools[2][th]
+	local pool = self.pool
+	local thd = pool[th]
 	if thd then
-		pools[1][th] = nil
-		pools[2][th] = nil
+		pool[th] = nil
 		self.weights = self.weights - thd.weight
 		for pth in pairs(thd.awaits) do
 			self:run(pth)
@@ -98,7 +98,7 @@ end
 ---Ставит поток на паузу, пока выполняется другой
 ---@param th thread
 function loopclass:await(th)
-	local thd = assert(self.pools[1][th] or self.pools[2][th], "Thread not registered or paused")
+	local thd = assert(self.pool[th], "Thread not registered or paused")
 	local cth = coroutine.running()
 	thd.awaits[cth] = true
 	self:pause(cth)
@@ -108,11 +108,10 @@ end
 ---Отправляет поток пока не будет вызвано `run`
 ---@param th thread если не указано, использует выполняющийся на данный момент поток
 function loopclass:pause(th)
-	local pools = self.pools
-	local data = pools[1][th] or pools[2][th]
+	local pool = self.pool
+	local data = pool[th]
 	if data and not data.paused then
-		pools[1][th] = nil
-		pools[2][th] = nil
+		pool[th] = nil
 		self.pausedpool[th] = data
 		data.paused = true
 		self.weights = self.weights - data.weight
@@ -131,8 +130,7 @@ end
 
 ---Закрываает все потоки всех пулов
 function loopclass:destroy()
-	for th in pairs(self.pools[1]) do cc(th) end
-	for th in pairs(self.pools[2]) do cc(th) end
+	for th in pairs(self.pool) do cc(th) end
 	for th in pairs(self.pausedpool) do cc(th) end
 end
 
@@ -164,7 +162,7 @@ function loopclass:run(th)
 	local data = self.pausedpool[th]
 	if data then
 		self.pausedpool[th] = nil
-		self.pools[self.next_pool][th] = data
+		self.pool[th] = data
 		data.paused = nil
 		self.weights = self.weights + data.weight
 
@@ -176,13 +174,7 @@ end
 local function process_loop(self)
 	while true do
 		if self.weights > 0 then
-			self.next_pool = 2
-			for thread, thread_data in pairs(self.pools[1]) do
-				process_thread(self, thread, thread_data)
-			end
-
-			self.next_pool = 1
-			for thread, thread_data in pairs(self.pools[2]) do
+			for thread, thread_data in pairs(self.pool) do
 				process_thread(self, thread, thread_data)
 			end
 		end
@@ -205,7 +197,7 @@ function loopclass:new(data)
 	if type(data) == "string" then data = { __name = data } end
 	local loop = obj.new(loopclass, nil, data) --[[@as Loop]]
 
-	loop.pools = {{},{}}
+	loop.pool = rst()
 	loop.pausedpool = {}
 	loop.thread = coroutine.create(process_loop)
 
