@@ -1,28 +1,9 @@
-local obj = require "obj"
+local Event = require "eventmgr"
 local to_json, json = pcall(require, "dkjson")
 local to_lua, ser = pcall(require, "serialize")
 
-local handler_streams_mt = {
-    __call = function(self, data)
-        for _, stream in ipairs(self) do
-            stream:write(data)
-        end
-    end
-}
-
----@class Handler : Object
----@field streams table?
----@field write fun(level: string, service: string, args: table): string
-local handler = obj:new "Handler"
-function handler:add_stream(stream)
-    if not stream then error("required one argument", 2) end
-    table.insert(self.streams, stream)
-end
-
-function handler:remove_stream(id_stream)
-    if not id_stream then error("required ine argument", 2) end
-    table.remove(self.streams, id_stream)
-end
+---@class LogHandler : Event
+---@field send fun(self: LogHandler, mess: string)
 
 local M = {}
 M.default_stream = io.stdout
@@ -36,15 +17,22 @@ local function parse_table(data)
 end
 
 ---Обработчик, который вываливает данные в читаемом виде
----@param streams {number: file* | {write: fun(data: string)}}?
----@return Handler
+---@param streams table<number, file*|{write: fun(data: string)}>?
+---@return LogHandler
 function M.human(streams)
-    local new_handler = handler:new() --[[@as Handler]]
-    new_handler.streams = setmetatable(streams or { M.default_stream }, handler_streams_mt)
+    local new_handler = Event:new "HumanLogHandler" --[[@as LogHandler]]
+    if streams then
+        for _, stream in ipairs(streams) do
+            new_handler:addCallback(stream, stream.write)
+        end
+    else
+        new_handler:addCallback(io.write)
+    end
 
-    function new_handler:write(level, service, args)
+    function new_handler:send(mess)
+        local tags, args = mess.tags, mess.data
         local word
-        if #args > 1 then
+        if args.n > 1 then
             local words = {}
             for i = 1, args.n do
                 if type(args[i]) == "table" then
@@ -61,7 +49,14 @@ function M.human(streams)
                 word = tostring(args[1])
             end
         end
-        self.streams(("[%s][%s] %s: %s\n"):format(os.date "!%d.%m %H:%M:%S UTC", level, service, word))
+        if mess.traceback then
+            local tb_out = {}
+            for i, tbdi in ipairs(mess.traceback) do
+                table.insert(tb_out, "\t" .. tbdi.short_src .. ":" .. tostring(tbdi.currentline) .. " in " .. (tbdi.name or tbdi.what or (tbdi.short_src .. ":" .. tbdi.linedefined)))
+            end
+            word = word .. "\nstack traceback: \n" .. table.concat(tb_out, "\n")
+        end
+        Event.send(self, ("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC", mess.time), tags.level, tags.service, word))
     end
 
     return new_handler
@@ -69,20 +64,22 @@ end
 
 if to_json then
     ---Обработчик, который вываливает данные в json
-    ---@param streams {number: file* | {write: fun(data: string)}}}
-    ---@return Handler
+    ---@param streams table<number, file*|{write: fun(data: string)}>?
+    ---@return LogHandler
     function M.json(streams)
-        local new_handler = handler:new()
-        new_handler.streams = setmetatable({ streams or M.default_stream }, handler_streams_mt)
+        local new_handler = Event:new "JSONLogHandler" --[[@as LogHandler]]
+        if streams then
+            for _, stream in ipairs(streams) do
+                new_handler:addCallback(stream, stream.write)
+            end
+        else
+            new_handler:addCallback(function(mess)
+                io.write(mess)
+            end)
+        end
 
-        function new_handler:write(level, service, args)
-            local out = {
-                level = level,
-                time = os.time(),
-                service = service,
-                data = args,
-            }
-            self.streams(json.encode(out) .. "\n")
+        function new_handler:send(mess)
+            Event.send(self, json.encode(mess) .. "\n")
         end
 
         return new_handler
@@ -91,20 +88,22 @@ end
 
 if to_lua then
     ---Обработчик, который вываливает данные в lua таблице
-    ---@param streams {number: file* | {write: fun(data: string)}}}
-    ---@return Handler
+    ---@param streams table<number, file*|{write: fun(data: string)}>?
+    ---@return LogHandler
     function M.lua(streams)
-        local new_handler = handler:new()
-        new_handler.streams = setmetatable(streams or { M.default_stream }, handler_streams_mt)
+        local new_handler = Event:new "LuaLogHandler" --[[@as LogHandler]]
+        if streams then
+            for _, stream in ipairs(streams) do
+                new_handler:addCallback(stream, stream.write)
+            end
+        else
+            new_handler:addCallback(function(mess)
+                io.write(mess)
+            end)
+        end
 
-        function new_handler:write(level, service, args)
-            local out = {
-                level = level,
-                time = os.time(),
-                service = service,
-                data = args,
-            }
-            self.streams(ser(out) .. "\n")
+        function new_handler:send(mess)
+            Event.send(self, ser(mess) .. "\n")
         end
 
         return new_handler

@@ -1,88 +1,53 @@
 local obj = require "obj"
-local handlers = require "log.handlers"
-
-local logger_handlers_mt = {
-    __call = function(self, level, logger, data)
-        for _, handler in ipairs(self) do
-            handler:write(level, logger.service, data)
-        end
-    end
-}
+local Collector = require "log.collector"
 
 ---@class Logger : Object
+---@field collector Collector
 ---@field service string
----@field handlers Handler[]
 ---@field debuging boolean
 ---@field verbosing boolean
 local logger = obj:new "logger"
-logger.service = "LOG"
+logger.service = "Main"
 logger.debuging = false
 logger.verbosing = false
+logger.collector = Collector
 
 ---Вывод информационного сообщения
 ---@vararg any
 function logger:info(...)
-    self.handlers("INFO", self, table.pack(...))
+    self.collector:collect({service = self.service, level = "INFO"}, ...)
 end
 
 ---Вывод сообщения внимание
 ---@vararg any
 function logger:warn(...)
-    self.handlers("WARN", self, table.pack(...))
+    self.collector:collect({service = self.service, level = "WARN"}, ...)
 end
 
 ---Вывод ошибки. Автоматически выводит трассировку
 ---@vararg any
 function logger:error(...)
-    local args = table.pack(...)
-    table.insert(args, debug.traceback("", 3))
-    args.n = args.n + 1
-    self.handlers("ERROR", self, args)
+    self.collector:collect_tb({service = self.service, level = "ERROR"}, ...)
 end
 
 ---отладочный вывод
 ---@vararg any
 function logger:debug(...)
-    if self.debuging then
-        self.handlers("DEBUG", self, table.pack(...))
-    end
+    self.collector:collect({service = self.service, level = "DEBUG"}, ...)
 end
 
 ---Дополнительный отладоный вывод
 ---@vararg any
 function logger:verbose(...)
-    if self.verbosing then
-        self.handlers("VERBOSE", self, table.pack(...))
-    end
+    self.collector:collect({service = self.service, level = "VERBOSE"}, ...)
 end
 
----Добавляет обработчик сообщения
----@param handler Handler
-function logger:add_handler(handler)
-    if not handler then error("one argument required", 2) end
-    if not handler.write then error("bad handler", 2) end
+function logger:new(service, collector)
+    local newl = obj.new(self)
+    newl.service = service
+    newl.collector = collector
 
-    table.insert(self.handlers, handler)
+    return newl
 end
 
-local M = {}
-M.loggers = {}
-M.default_handler = handlers.human()
-
----comment
----@param service string?
----@param handler Handler?
----@return Logger
-function M.new(service, handler)
-    if M.loggers[service] then return M.loggers[service] end
-    local new = logger:new()
-    new.handlers = setmetatable({ handler or M.default_handler }, logger_handlers_mt)
-    if service then
-        new.service = service
-        M.loggers[service] = new
-    end
-
-    return new
-end
-
-return M
+return logger
