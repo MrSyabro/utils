@@ -15,7 +15,7 @@ collector_class.receive:addCallback(defhandler, defhandler.send)
 
 ---Собирает данные сообщения
 ---@param tags table<string, string>[]
----@param ... unknown
+---@param ... any сообщение
 function collector_class:collect(tags, ...)
     local mess_data = tp(...)
     local mess = dg(2, "Sln") --[[@as table]]
@@ -28,6 +28,9 @@ function collector_class:collect(tags, ...)
     self.receive(mess)
 end
 
+---Собрать данные сообщения с обратной трассировкой вызовов
+---@param tags table<string, string>[]
+---@param ... any сообщене
 function collector_class:collect_tb(tags, ...)
     local mess_data = tp(...)
     local mess = dg(2, "Sln") --[[@as table]]
@@ -49,6 +52,14 @@ function collector_class:collect_tb(tags, ...)
     local seld_data = self.data
     ti(seld_data, mess)
     self.receive(mess)
+end
+
+---Имитирует повторную отправку всех сообщений лога
+function collector_class:outall()
+    self.receive.enabled = true
+    for _, mess in ipairs(self.data) do
+        self.receive(mess)
+    end
 end
 
 ---Создает новый сборщик

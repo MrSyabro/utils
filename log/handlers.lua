@@ -56,7 +56,7 @@ function M.human(streams)
             end
             word = word .. "\nstack traceback: \n" .. table.concat(tb_out, "\n")
         end
-        Event.send(self, ("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC", mess.time), tags.level, tags.service, word))
+        Event.send(self, ("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC", mess.time), LogLevels[tags.level], tags.service, word))
     end
 
     return new_handler
