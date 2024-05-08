@@ -1,27 +1,11 @@
 local M = {}
 
-local env = {
-	string = string,
-	math = math,
-	os = {
-		getenv = os.getenv,
-		time = os.time,
-		date = os.date,
-		difftime = os.difftime,
-		tmpname = os.tmpname
-	},
-}
-env.__index = env
-
 ---Deserialize string
 ---@param str string serialized lua data
----@param ser_func boolean serialize function or not (access to load())
 ---@return table?
 ---@return string?
-function M.str(str, ser_func)
-	local newenv = setmetatable({}, env)
-	local f, err = load("return " .. str, "desrialize", "t", newenv)
-	if not f then return nil, err end
+function M.str(str)
+	local f = assert(load("return " .. str, "desrialization", "t", {}))
 	local data = f()
 	return data
 end
@@ -35,7 +19,7 @@ function M.file(filepath)
 	if not file then return nil, err end
 	local str = file:read "a"
 	file:close()
-	return M.str(str, false)
+	return M.str(str)
 end
 
 return setmetatable(M, { __call = function(self, ...) return self.str(...) end })

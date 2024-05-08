@@ -1,6 +1,7 @@
 local obj = require "obj"
 local Event = require "eventmgr"
 local defhandler = require "log.handlers".human()
+local ser  = require("serialize").serialize
 
 local function parse_table(data)
 	local out = { "" }
@@ -10,7 +11,7 @@ local function parse_table(data)
 	return table.concat(out, "\n")
 end
 
-local tp, dg, ti, ot = table.pack, debug.getinfo, table.insert, os.time
+local tp, dg, getmt, ti, ot = table.pack, debug.getinfo, getmetatable, table.insert, os.time
 
 ---@class CollectorMessage : debuginfo
 ---@field level number
@@ -35,8 +36,15 @@ collector_class.receive:addCallback(defhandler, defhandler.send)
 function collector_class:collect(level, tags, ...)
 	local mess_data = tp(...)
 	for i, t in ipairs(mess_data) do
-		if type(t) == "table" then
-			mess_data[i] = parse_table(t)
+		local mt = getmt(t)
+		if mt and mt.__log then
+			mess_data[i] = mt.__log(t, level)
+		elseif type(t) == "table" then
+			if level == LogLevels.VERBOSE then
+				mess_data[i] = ser(t, 2)
+			else
+				mess_data[i] = parse_table(t)
+			end
 		end
 	end
 	local mess = dg(2, "Sln") --[[@as CollectorMessage]]
@@ -56,8 +64,15 @@ end
 function collector_class:collect_tb(level, tags, ...)
 	local mess_data = tp(...)
 	for i, t in ipairs(mess_data) do
-		if type(t) == "table" then
-			mess_data[i] = parse_table(t)
+		local mt = getmt(t)
+		if mt and mt.__log then
+			mess_data[i] = mt.__log(t, level)
+		elseif type(t) == "table" then
+			if level == LogLevels.VERBOSE then
+				mess_data[i] = ser(t, 2)
+			else
+				mess_data[i] = parse_table(t)
+			end
 		end
 	end
 	local mess = dg(2, "Sln") --[[@as table]]

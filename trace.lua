@@ -1,7 +1,20 @@
+---@class caller
+---@field calls number
+---@field clock number
+---@field maxclock number
+---@field fullclock number
+---@field vmd number
+---@field maxvmd number
+---@field fullvmd number
+---@field dvmd number
+---@field dfullvmd number
+---@field dmaxvmd number
+
 ---@class traceinfo : debuginfo
 ---@field id number
 ---@field start number вспомогательная переменная
----@field callers table<number|"C", {calls:number, clock: number, maxclock: number, fullclock: number}> количество вызовов из каждой функции
+---@field start_vm number вспомогательная переменная
+---@field callers table<number|"C", caller> количество вызовов из каждой функции
 
 local M = {}
 
@@ -9,7 +22,7 @@ local tbc, tbi = table.concat, table.insert
 local dgi, dsh = debug.getinfo, debug.sethook
 local sf = string.format
 local oc = os.clock
-local mmax = math.max
+local mmax, mmin = math.max, math.min
 
 local funcs_count = 0
 ---@type table<function, traceinfo> таблица данных трассировки
@@ -64,13 +77,20 @@ local function hook(hook_type)
 				backtrace = {
 					maxclock = 0,
 					fullclock = 0,
-					calls = 1
+					calls = 1,
+					vmd = 0,
+					maxvmd = 0,
+					fullvmd = 0,
+					dvmd = 0,
+					dfullvmd = 0,
+					dmaxvmd = 0,
 				}
 				storedinfo.callers[sid] = backtrace
 			end
 			local calls = backtrace.calls
 			backtrace.calls = calls + 1
 			storedinfo.start = oc()
+			storedinfo.start_vm = collectgarbage "count"
 		else
 			traceinfo.source = nil
 			traceinfo.lastlinedefined = nil
@@ -86,18 +106,26 @@ local function hook(hook_type)
 				clock = 0,
 				maxclock = 0,
 				fullclock = 0,
-				calls = 1
+				calls = 1,
+				vmd = 0,
+				maxvmd = 0,
+				fullvmd = 0,
+				dvmd = 0,
+				dfullvmd = 0,
+				dmaxvmd = 0,
 			}
 
 			funcs_count = funcs_count + 1
 			traceinfo.id = funcs_count
 			funcs_list[curr_func] = traceinfo
 			traceinfo.start = oc()
+			traceinfo.start_vm = collectgarbage "count"
 		end
 	elseif hook_type == "return" then
 		local storedinfo = funcs_list[curr_func]
 		if storedinfo then
 			local clock = oc() - storedinfo.start
+			local vmd = collectgarbage "count" - storedinfo.start_vm
 			local sid = 'C'
 			if secondti then
 				local second_sti = funcs_list[secondti.func]
@@ -111,13 +139,28 @@ local function hook(hook_type)
 					clock = 0,
 					maxclock = 0,
 					fullclock = 0,
-					calls = 1
+					calls = 1,
+					vmd = 0,
+					maxvmd = 0,
+					fullvmd = 0,
+					dvmd = 0,
+					dfullvmd = 0,
+					dmaxvmd = 0,
 				}
 				storedinfo.callers[sid] = backtrace
 			end
 			backtrace.maxclock = mmax(backtrace.maxclock, clock)
 			backtrace.clock = clock
 			backtrace.fullclock = backtrace.fullclock + clock
+			backtrace.maxvmd = mmax(backtrace.maxvmd, vmd)
+			backtrace.dmaxvmd = mmin(backtrace.dmaxvmd, vmd)
+			if vmd > 0 then
+				backtrace.vmd = vmd
+				backtrace.fullvmd = backtrace.fullvmd + vmd
+			else
+				backtrace.dvmd = vmd
+				backtrace.dfullvmd = backtrace.dfullvmd + vmd
+			end
 		end
 	end
 	return dsh(hook, "cr")

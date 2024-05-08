@@ -29,6 +29,7 @@ logger.tags = {
 	service = "Main"
 }
 logger.collector = Collector
+logger.verbosing = false
 Collector.receive.filter = collector_filter
 Collector.receive.level = LogLevels.ERROR
 
@@ -63,17 +64,27 @@ end
 ---Дополнительный отладоный вывод
 ---@vararg any
 function logger:verbose(...)
-	self.collector:collect(LogLevels.VERBOSE, self.tags, ...)
+	if self.verbosing then
+		self.collector:collect(LogLevels.VERBOSE, self.tags, ...)
+	end
 end
 
 ---Установить новый сборщик
 ---@param collector Collector?
 function logger:setcollector(collector)
+	local level = self.collector.receive.level
 	self.collector = collector
 	if collector then
 		collector.receive.filter = collector_filter
-		collector.receive.level = self.collector.receive.level
+		collector.receive.level = level
 	end
+end
+
+---Устанавливает уровень вывода логгера
+---@param level LogLevels
+function logger:setlevel(level)
+	self.collector.receive.level = level
+	self.verbosing = level == LogLevels.VERBOSE
 end
 
 ---Создает новый логгер
@@ -82,7 +93,7 @@ end
 ---@return Logger
 function logger:new(service, collector)
 	local cached = cache[service]
-	if cached then print("ABOBA") return cached end
+	if cached then return cached end
 
 	local newl = obj.new(self)
 	newl.tags = setmetatable({ service = service }, { __index = self.tags })

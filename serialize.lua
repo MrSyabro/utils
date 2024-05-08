@@ -1,9 +1,26 @@
+local sf = string.format
+local ti, tc = table.insert, table.concat
+local dg = debug.getmetatable
+
+local strfmt = "%q"
+local str_mt = dg(strfmt) or {}
+str_mt.__serialize = function(o) return sf(strfmt, o) end
+debug.setmetatable(strfmt, str_mt)
+
+local num_mt = dg(10) or {}
+num_mt.__serialize = tostring
+debug.setmetatable(10, num_mt)
+
 ---@param o any
 ---@param r number #количество вложенных таблиц, которые стоит форматировать
 ---@param prefix string? #используется форматирования строк
 ---@param ts table? #таблица ссылок на таблицы в данных для предотвращения цикличностей
 ---@return string
 local function fser(o, r, prefix, ts)
+	local omt = dg(o)
+	if omt and omt.__serialize then
+		return omt.__serialize(o)
+	end
 	local ts = ts or {}
 	local p = prefix or ""
 	local t = type(o)
@@ -19,17 +36,10 @@ local function fser(o, r, prefix, ts)
 			local lo = fser(k, r -1, (r > 0) and (p .. "\t"), ts)
 			local lk = fser(i, r -1, (r > 0) and (p .. "\t"), ts)
 			if lk and lo then
-				table.insert(tout, "[" .. lk .. "] = " .. lo .. ", " .. sep)
+				ti(tout, "[" .. lk .. "] = " .. lo .. ", " .. sep)
 			end
 		end
-		out = "{ " .. sep .. ((r > 0) and p or "") .. table.concat(tout, (r > 0) and p or nil) .. ((r > 0) and p:sub(1, -2) or "") .. "}"
-	elseif t == "function"
-		or t == "thread"
-		or t == "userdata"
-	then
-		out = nil
-	else
-		out = string.format("%q", o)
+		out = "{ " .. sep .. ((r > 0) and p or "") .. tc(tout, (r > 0) and p or nil) .. ((r > 0) and p:sub(1, -2) or "") .. "}"
 	end
 	return out
 end
@@ -37,35 +47,27 @@ end
 ---@param o any
 ---@return string?
 local function ser(o, ts)
+	local omt = dg(o)
+	if omt and omt.__serialize then
+		return omt.__serialize(o)
+	end
 	local ts = ts or {}
 	local t = type(o)
 	local out
 	if t == "table" then
 		if ts[o] then
-			return [=["loop table"]=]
+			return '"loop table"'
 		end
 		ts[o] = true
-		local tout = { "{" }
+		local tout = {}
 		for i, k in pairs(o) do
 			local lo = ser(k, ts)
 			if lo then
-				table.insert(tout, "[")
-				table.insert(tout, ser(i, ts))
-				table.insert(tout, "]=")
-				table.insert(tout, lo .. ",")
+				ti(tout, '[' .. ser(i, ts) .. "]=" .. lo)
 			end
 		end
-		table.insert(tout, "}")
-		out = table.concat(tout)
-	elseif t == "function"
-		or t == "thread"
-		or t == "userdata"
-	then
-		out = nil
-	else
-		out = string.format("%q", o)
+		return '{' .. tc(tout, ',') .. "}"
 	end
-	return out
 end
 
 local M = setmetatable({}, {__call = function(self, ...)
