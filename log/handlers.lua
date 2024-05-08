@@ -8,6 +8,14 @@ local to_lua, ser = pcall(require, "serialize")
 local M = {}
 M.default_stream = io.stdout
 
+local function parse_table(data)
+	local out = { "" }
+	for key, value in pairs(data) do
+		table.insert(out, ("[%s] = %q"):format(tostring(key), tostring(value)))
+	end
+	return table.concat(out, "\n")
+end
+
 ---Обработчик, который вываливает данные в читаемом виде
 ---@param streams table<number, file*|{write: fun(data: string)}>?
 ---@return LogHandler
@@ -29,11 +37,19 @@ function M.human(streams)
 		if args.n > 1 then
 			local words = {}
 			for i = 1, args.n do
-				table.insert(words, tostring(args[i]))
+				if type(args[i]) == "table" then
+					table.insert(words, parse_table(args[i]))
+				else
+					table.insert(words, tostring(args[i]))
+				end
 			end
 			word = table.concat(words, "\t")
 		else
-			word = tostring(args[1])
+			if type(args[1]) == "table" then
+				word = parse_table(args[1])
+			else
+				word = tostring(args[1])
+			end
 		end
 		if mess.traceback then
 			local tb_out = {}
