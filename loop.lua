@@ -5,7 +5,7 @@ local cr, cs, cy, cc = coroutine.resume, coroutine.status, coroutine.yield, coro
 local tp, tu = table.pack, table.unpack
 local osc = os.clock
 
----@class ThreadData
+---@class threaddata
 ---@field weight number
 ---@field paused boolean?
 ---@field args table
@@ -13,10 +13,11 @@ local osc = os.clock
 ---@field awaits table<thread, boolean>
 
 ---@class Loop : Object
----@field pool table<thread, ThreadData>
+---@field pool table<thread, threaddata>
 ---@field funcindexes table<function, thread>
 ---@field next_pool number указывает на следующий рабочий пул
----@field pausedpool table<thread, ThreadData>
+---@field pausedpool table<thread, threaddata>
+---@field removed table<thread, threaddata> слабая таблица удаленных, но не уничтоженных рутин
 ---@field weights number сумма весов всех задач
 ---@field thread thread
 ---@field name string?
@@ -52,6 +53,7 @@ function loopclass:remove(th)
 	local thd = pool[th]
 	if thd then
 		pool[th] = nil
+		self.removed[th] = thd
 		self.weights = self.weights - thd.weight
 		for pth in pairs(thd.awaits) do
 			self:run(pth, tu(thd.returns, 2))
@@ -61,6 +63,7 @@ function loopclass:remove(th)
 	local thd = self.pausedpool[th]
 	if thd then
 		self.pausedpool[th] = nil
+		self.removed[th] = thd
 		for pth in pairs(thd.awaits) do
 			self:run(pth, tu(thd.returns, 2))
 		end
@@ -95,10 +98,16 @@ end
 ---@param th thread
 ---@param tth thread?
 function loopclass:await(th, tth)
-	local thd = assert(self.pool[th] or self.pausedpool[th], "Thread not registered or paused")
-	local cth = tth or coroutine.running()
-	thd.awaits[cth] = true
-	self:pause(cth)
+	local thd = self.pool[th] or self.pausedpool[th]
+	if thd then
+		local cth = tth or coroutine.running()
+		thd.awaits[cth] = true
+		self:pause(cth)
+		return cy()
+	else
+		local thd = assert(self.removed[th], "Thread not found")
+		return tu(thd.returns, 2)
+	end
 end
 
 ---Отправляет поток пока не будет вызвано `run`
@@ -130,9 +139,15 @@ function loopclass:destroy()
 	for th in pairs(self.pausedpool) do cc(th) end
 end
 
+---@param th thread
+---@return threaddata
+function loopclass:getdata(th)
+	return self.removed[th] or self.pausedpool[th] or self.pool[th]
+end
+
 ---@param self Loop
 ---@param thread thread
----@param thread_data ThreadData
+---@param thread_data threaddata
 local function process_thread(self, thread, thread_data)
 	local maxclock = self.time / self.weights * thread_data.weight
 	local cclock = 0
@@ -150,6 +165,7 @@ local function process_thread(self, thread, thread_data)
 			return
 		elseif cs(thread) == "dead" then
 			self:remove(thread)
+			return
 		end
 		if #thread_data.args > 0 then thread_data.args = PH end
 		cclock = cclock + (osc() - c2)
@@ -211,6 +227,7 @@ function loopclass:new(data)
 
 	loop.pool = rst()
 	loop.pausedpool = {}
+	loop.removed = setmetatable({}, {__mode = "k"})
 	loop.thread = coroutine.create(process_loop)
 
 	return loop
