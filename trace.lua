@@ -28,6 +28,7 @@ local funcs_count = 0
 ---@type table<function, traceinfo> таблица данных трассировки
 local funcs_list = {}
 M.funcs_list = funcs_list
+M.snapshots = {}
 
 local function serialize_traceinfo(traceinfo)
 	local out = {"{"}
@@ -187,6 +188,12 @@ function M.reset()
 	funcs_list = {}
 	M.funcs_list = funcs_list
 	funcs_count = 0
+end
+
+---Дампит в таблицу инфо трассировки и сбрасывает таблицу
+function M.snapshot()
+	tbi(M.snapshots, M.dump())
+	M.reset()
 end
 
 return M

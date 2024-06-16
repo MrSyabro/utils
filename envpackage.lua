@@ -23,10 +23,10 @@ package_class.searchers = {
 			return nil, ("no field package.preload['%s']"):format(name)
 		end
 	end,
-	function(self, name)
-		local filename, error = package.searchpath(name, self.path)
+	function(pacakge, name)
+		local filename, error = package.searchpath(name, pacakge.path)
 		if filename then
-			local f = assert(loadfile(filename, "bt", self.env))
+			local f = assert(loadfile(filename, "bt", pacakge.env))
 			return f, filename
 		else
 			return nil, error

@@ -3,14 +3,14 @@ local Collector = require "log.collector"
 
 ---@enum LogLevels
 LogLevels = {
-	INFO = 1,
+	ERROR = 1,
 	WARN = 2,
-	ERROR = 3,
+	INFO = 3,
 	DEBUG = 4,
 	VERBOSE = 5,
-	"INFO",
-	"WARN",
 	"ERROR",
+	"WARN",
+	"INFO",
 	"DEBUG",
 	"VERBOSE",
 }
@@ -31,8 +31,7 @@ logger.tags = {
 logger.collector = Collector
 logger.verbosing = false
 Collector.receive.filter = collector_filter
-Collector.receive.level = LogLevels.ERROR
-
+Collector.receive.level = LogLevels.INFO
 local cache = {
 	Main = logger
 }
@@ -69,14 +68,24 @@ function logger:verbose(...)
 	end
 end
 
+---Дополнительный динамический отладочный вывод. Если включен verbosing, выдаст verbose сообщение, иначе debug
+function logger:vdbg(...)
+	if self.verbosing then
+		self.collector:collect(LogLevels.VERBOSE, self.tags, ...)
+	else
+		self.collector:collect(LogLevels.DEBUG, self.tags, ...)
+	end
+end
+
 ---Установить новый сборщик
 ---@param collector Collector?
 function logger:setcollector(collector)
-	local level = self.collector.receive.level
-	self.collector = collector
 	if collector then
+		if not collector.receive.level then
+			collector.receive.level = self.collector.receive.level
+		end
+		self.collector = collector
 		collector.receive.filter = collector_filter
-		collector.receive.level = level
 	end
 end
 

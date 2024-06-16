@@ -2,16 +2,19 @@ local obj = require "obj"
 local Event = require "eventmgr"
 local defhandler = require "log.handlers".human()
 local ser  = require("serialize").serialize
+local tp, dg, getmt, ti, ot = table.pack, debug.getinfo, getmetatable, table.insert, os.time
 
-local function parse_table(data)
+local function parse_table(data, level)
 	local out = { "" }
 	for key, value in pairs(data) do
+		local mt = getmt(value)
+		if mt and mt.__log then
+			value = mt.__log(value, level)
+		end
 		table.insert(out, ("[%s] = %q"):format(tostring(key), tostring(value)))
 	end
 	return table.concat(out, "\n")
 end
-
-local tp, dg, getmt, ti, ot = table.pack, debug.getinfo, getmetatable, table.insert, os.time
 
 ---@class CollectorMessage : debuginfo
 ---@field level number
@@ -43,7 +46,7 @@ function collector_class:collect(level, tags, ...)
 			if level == LogLevels.VERBOSE then
 				mess_data[i] = ser(t, 2)
 			else
-				mess_data[i] = parse_table(t)
+				mess_data[i] = parse_table(t, level)
 			end
 		end
 	end

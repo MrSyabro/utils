@@ -15,6 +15,7 @@ local mt = {
 		local cur = true
 		pool.next = false
 		return function(pool, i)
+			if i and not pool[i] then i = nil end
 			local nkey, ndata = next(pool[cur], i)
 			if nkey then
 				return nkey, ndata
