@@ -11,6 +11,10 @@ local num_mt = dg(10) or {}
 num_mt.__serialize = tostring
 debug.setmetatable(10, num_mt)
 
+local bool_mt = dg(true) or {}
+bool_mt.__serialize = function(v) return v and "true" or "false" end
+debug.setmetatable(true, bool_mt)
+
 ---@param o any
 ---@param r number #количество вложенных таблиц, которые стоит форматировать
 ---@param prefix string? #используется форматирования строк
