@@ -15,7 +15,6 @@ local osc = os.clock
 ---@class Loop : Object
 ---@field pool table<thread, threaddata>
 ---@field funcindexes table<function, thread>
----@field next_pool number указывает на следующий рабочий пул
 ---@field pausedpool table<thread, threaddata>
 ---@field removed table<thread, threaddata> слабая таблица удаленных, но не уничтоженных рутин
 ---@field weights number сумма весов всех задач
@@ -24,7 +23,6 @@ local osc = os.clock
 local loopclass = obj:new "Loop"
 loopclass.time = 0.003
 loopclass.weights = 0
-loopclass.next_pool = 1
 
 ---Регистрирует новую нить в пуле
 ---@param thread thread
@@ -83,15 +81,6 @@ function loopclass:acall(func, ...)
 	local thdata = self.pool[newth]
 	thdata.args = tp(...)
 	return newth
-end
-
----Функция аналогична coroutine.wrap, возращает функцию, которая вызовет loop:acall(func)
----@param func function
----@return function wrap
-function loopclass:awrap(func)
-	return function(...)
-		self:acall(func, ...)
-	end
 end
 
 ---Ставит поток на паузу, пока выполняется другой
