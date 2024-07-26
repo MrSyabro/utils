@@ -44,6 +44,17 @@ function loopclass:register(thread, weight)
 	self.weights = self.weights + weight
 end
 
+---Устанавливает вес уже добавленой задачи
+---@param th thread
+---@param weight integer
+function loopclass:setwight(th, weight)
+	local data = self:getdata(th)
+	if data then
+		self.weights = self.weights - data.weight + weight
+		data.weight = weight
+	end
+end
+
 ---Удаляет рутину из пулов
 ---@param th thread
 function loopclass:remove(th)
@@ -161,7 +172,7 @@ local function process_thread(self, thread, thread_data)
 	until thread_data.paused or cclock > maxclock
 end
 
----Перекидывает из отдыхающих в работающие, тут же выполняет поток
+---Перекидывает из отдыхающих в работающие, тут же выполняет поток при этом записав аргументы, если их > 0
 ---@param th thread
 function loopclass:run(th, ...)
 	local data = self.pausedpool[th]
@@ -169,7 +180,10 @@ function loopclass:run(th, ...)
 		self.pausedpool[th] = nil
 		self.pool[th] = data
 		data.paused = nil
-		data.args = tp(...)
+		local args = tp(...)
+		if args.n > 0 then
+			data.args = args
+		end
 		self.weights = self.weights + data.weight
 
 		process_thread(self, th, data)

@@ -144,6 +144,10 @@ function eventmgr_class:__call(...)
 	self:send(...)
 end
 
+function eventmgr_class:__tostring()
+	return self.__name .. ": " .. self.name
+end
+
 ---Создает экземпляр `Event`
 ---@param name string #имя для обработчика (по умолчанию Test)
 ---@param weak boolean? #делает список колбеков слабой таблицей

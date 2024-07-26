@@ -1,8 +1,14 @@
+local weakmt = {__mode = "k"}
+
 ---Простейщая версия обьекта на основе метатаблице
 ---@class Object
+---@field __name string
+---@field __index table
+---@field __childs table
 local O = {}
 O.__index = O
 O.__name = "Object"
+O.__childs = setmetatable({}, weakmt)
 
 ---Создает новый унследованный обьект
 ---@generic O : Object
@@ -15,7 +21,9 @@ function O.new(self, name, data)
 	if name then
 		data.__index = data
 		data.__name = name
+		data.__childs = setmetatable({}, weakmt)
 	end
+	self.__childs[data] = true
 	return setmetatable(data, self)
 end
 
@@ -39,7 +47,7 @@ function O.copy(self, data)
 			data[key] = value
 		end
 	end
-	
+
 	return data
 end
 
