@@ -167,7 +167,7 @@ local function process_thread(self, thread, thread_data)
 			self:remove(thread)
 			return
 		end
-		if #thread_data.args > 0 then thread_data.args = PH end
+		if #thread_data.args > 0 then thread_data.args = {} end
 		cclock = cclock + (osc() - c2)
 	until thread_data.paused or cclock > maxclock
 end
