@@ -20,6 +20,13 @@ local ti = table.insert
 ---@operator concat (number[]):vec
 local M = {}
 
+---Создает новый вектор
+---@param ... number
+---@return number[]|vec
+function M.new(...)
+	return setmetatable({...}, M)
+end
+
 ---Создает нулевой вектор размера s
 ---@param s number
 ---@return vec
@@ -761,14 +768,13 @@ local mmax, mmin, ms = math.max, math.min, math.sqrt
 ---@param vec number[]
 ---@return number
 function M.len(vec)
-    local sum = M.sum(M.__pownum(vec, 2))
-    return ms(sum)
+    return ms(M.lensqr(vec))
 end
 
 ---Квадрат длинны вектора
 ---@param vec number[]
 ---@return number
-function M.len_sqr(vec)
+function M.lensqr(vec)
 	return M.sum(M.__pownum(vec, 2))
 end
 
@@ -881,8 +887,4 @@ M.__tostring = M.tostring
 
 M.__name = "Vec"
 
-return setmetatable(M, {
-    __call = function(self, ...)
-	    return setmetatable({...}, self)
-    end
-})
+return M
