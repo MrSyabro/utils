@@ -14,7 +14,10 @@ assert(t[3] == 2)
 
 t = {5, 4, 2, 1}
 
-table.sortinsert(t, 3, function(a,b) return a > b end)
+table.sortinsert(t, 3, function(a,b)
+    if a == b then return end
+    return a > b end
+)
 assert(t[3] == 3)
 
 t = {1, 3, 5, 6, 7, 10, 15, 20}

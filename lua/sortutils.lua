@@ -13,7 +13,7 @@ end
 function table.sortinsert(list, value, comp)
 	comp = comp or defcomp
 	for i = #list, 1, -1 do
-		local ivalue = list[i]
+		local ivalue = rawget(list, i)
 		if comp(ivalue, value) then
 			list[i+1] = value
 			return
@@ -39,9 +39,10 @@ function table.sortsearch(list, value, comp, i, j)
 	if (i - j) < 0 then return end
 
 	local mid = j + (i - j) // 2
-	local eq = comp(list[mid], value)
+	local el = rawget(list, mid)
+	local eq = comp(el, value)
 	if eq == nil then
-		return mid
+		return mid, el
 	elseif eq then
 		return table.sortsearch(list, value, comp, i, mid + 1)
 	else

@@ -17,6 +17,7 @@ static int lua_sortinser(lua_State *L) {
     luaL_checkany(L, 2);
     lua_Unsigned n = lua_rawlen(L, 1);
     if (!lua_isfunction(L, 3)) {
+        lua_settop(L, 2);
         lua_pushcfunction(L, lua_defcomp);
     }
 
@@ -25,21 +26,21 @@ static int lua_sortinser(lua_State *L) {
 
         // подготавливаем стек к вызову компоратора
         lua_pushvalue(L, 3);
+        lua_pushvalue(L, -2);
         lua_pushvalue(L, 2);
-        lua_pushvalue(L, -3);
 
         lua_call(L, 2, 1);
 
         if (lua_toboolean(L, -1)) {
-            lua_pop(L, 1);
-            lua_rawseti(L, 1, i+1);
-            lua_pushnil(L);
-            lua_rawseti(L, 1, i);
-        } else {
             lua_pop(L, 3);
             lua_rawseti(L, 1, ++i);
             lua_pushinteger(L, i);
             return 1;
+        } else {
+            lua_pop(L, 1);
+            lua_rawseti(L, 1, i+1);
+            lua_pushnil(L);
+            lua_rawseti(L, 1, i);
         }
     }
 
@@ -53,9 +54,19 @@ static int lua_search(lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE); //list
     luaL_checkany(L, 2); //value
     lua_Unsigned n = lua_rawlen(L, 1);
-    if (lua_isnoneornil(L, 3)) lua_pushcfunction(L, lua_defcomp); //comp
-    if (lua_isnoneornil(L, 4)) lua_pushinteger(L, n); //i
-    if (lua_isnoneornil(L, 5)) lua_pushinteger(L, 1); //j
+    if (lua_isnoneornil(L, 3)) {
+        lua_settop(L, 2);
+        lua_pushcfunction(L, lua_defcomp);
+    } //comp
+    if (lua_isnoneornil(L, 4)) {
+        lua_settop(L, 3);
+        lua_pushinteger(L, n);
+    } //i
+    if (lua_isnoneornil(L, 5)) {
+        lua_settop(L, 4);
+        lua_pushinteger(L, 1);
+    } //j
+    lua_settop(L, 5);
 
     lua_Integer i = luaL_checkinteger(L, 4);
     lua_Integer j = luaL_checkinteger(L, 5);
@@ -64,23 +75,24 @@ static int lua_search(lua_State *L) {
 
     // подготавливаем стек к вызову компоратора
     lua_pushvalue(L, 3);
-    lua_pushvalue(L, 2);
     lua_rawgeti(L, 1, mid);
+    lua_pushvalue(L, 2);
 
     lua_call(L, 2, 1);
 
     if (lua_isnoneornil(L, -1)) {
         lua_pushinteger(L, mid);
-        return 1;
+        lua_rawgeti(L, 1, mid);
+        return 2;
     } else {
         int iseq = lua_toboolean(L, -1);
         lua_settop(L, 3);
         if (iseq) {
-            lua_pushinteger(L, mid - 1);
-            lua_pushinteger(L, j);
-        } else {
             lua_pushinteger(L, i);
             lua_pushinteger(L, mid + 1);
+        } else {
+            lua_pushinteger(L, mid - 1);
+            lua_pushinteger(L, j);
         }
         return lua_search(L);
     }
