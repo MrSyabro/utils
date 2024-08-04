@@ -6,7 +6,7 @@ local M = {}
 function M.newempty(w)
 	local newmat = setmetatable({}, M)
 	for cw = 1, w do
-		newmat[cw] = vec()
+		newmat[cw] = vec.new()
 	end
 	return newmat
 end
@@ -180,7 +180,7 @@ function M.__mul(mata, matb)
 	local newmat = setmetatable({}, M)
 	local matb = M.__transpos(matb)
 	for i = 1, rows do
-		local v = vec()
+		local v = vec.new()
 		for i2 = 1, cols do
 			v[i2] = vec.sum(vec.__mul(mata[i], matb[i2]))
 		end

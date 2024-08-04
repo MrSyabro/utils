@@ -6,6 +6,7 @@ local tp, tu = table.pack, table.unpack
 local osc = os.clock
 
 ---@class threaddata
+---@field clock number
 ---@field weight number
 ---@field paused boolean?
 ---@field args table
@@ -21,13 +22,15 @@ local osc = os.clock
 ---@field thread thread
 ---@field name string?
 local loopclass = obj:new "Loop"
-loopclass.time = 0.003
+loopclass.time = 0.005
 loopclass.weights = 0
 
 ---Регистрирует новую нить в пуле
 ---@param thread thread
 ---@param weight number?
-function loopclass:register(thread, weight)
+---@param args table?
+---@return thread thread
+function loopclass:register(thread, weight, args)
 	if type(thread) ~= "thread" then error("Bad thread type", 2) end
 	if not weight then
 		local cth = coroutine.running()
@@ -35,19 +38,20 @@ function loopclass:register(thread, weight)
 		weight = cthd and cthd.weight or 5
 	end
 	self.pool[thread] = {
-		weight = weight,
+		weight = math.max(weight, 1),
 		clock = 0,
 		awaits = {},
-		args = {},
+		args = args or {},
 		returns = {},
 	}
 	self.weights = self.weights + weight
+	return thread
 end
 
 ---Устанавливает вес уже добавленой задачи
 ---@param th thread
 ---@param weight integer
-function loopclass:setwight(th, weight)
+function loopclass:setweight(th, weight)
 	local data = self:getdata(th)
 	if data then
 		self.weights = self.weights - data.weight + weight
@@ -87,11 +91,7 @@ end
 ---@return thread
 function loopclass:acall(func, ...)
 	if type(func) ~= "function" then error("Bad function type", 2) end
-	local newth = coroutine.create(func)
-	self:register(newth)
-	local thdata = self.pool[newth]
-	thdata.args = tp(...)
-	return newth
+	return self:register(coroutine.create(func), nil, tp(...))
 end
 
 ---Ставит поток на паузу, пока выполняется другой
@@ -135,8 +135,8 @@ end
 
 ---Закрываает все потоки всех пулов
 function loopclass:destroy()
-	for th in pairs(self.pool) do cc(th) end
-	for th in pairs(self.pausedpool) do cc(th) end
+	for th in pairs(self.pool) do self:remove(th) end
+	for th in pairs(self.pausedpool) do self:remove(th) end
 end
 
 ---@param th thread
@@ -149,9 +149,10 @@ end
 ---@param thread thread
 ---@param thread_data threaddata
 local function process_thread(self, thread, thread_data)
-	local maxclock = self.time / self.weights * thread_data.weight
-	local cclock = 0
-	repeat
+	local fulltime = self.time
+	local maxclock = fulltime / self.weights * thread_data.weight
+	local cclock = thread_data.clock
+	while cclock <= maxclock and not thread_data.paused do
 		local c2 = osc()
 		local ret = tp(cr(thread, tu(thread_data.args)))
 		thread_data.returns = ret
@@ -169,7 +170,9 @@ local function process_thread(self, thread, thread_data)
 		end
 		if #thread_data.args > 0 then thread_data.args = {} end
 		cclock = cclock + (osc() - c2)
-	until thread_data.paused or cclock > maxclock
+	end
+	thread_data.clock = cclock - maxclock
+	if cclock >= fulltime then cy() end
 end
 
 ---Перекидывает из отдыхающих в работающие, тут же выполняет поток при этом записав аргументы, если их > 0
@@ -185,8 +188,6 @@ function loopclass:run(th, ...)
 			data.args = args
 		end
 		self.weights = self.weights + data.weight
-
-		process_thread(self, th, data)
 	end
 end
 
@@ -210,14 +211,24 @@ function loopclass:step()
 	end
 end
 
----Запускает луп как главный в бесконечном цикле. Также создает метод остановки `loopclass:exit`, останавливающий цикл.
+---Запускает луп как главный в бесконечном цикле. Также создает метод остановки `self:exit`, останавливающий цикл.
+---
+---К тому же записывает колличество тиков в секунду в поле `self.tps`
 function loopclass:main()
 	local work = true
 	function self:exit()
 		work = false
 	end
+	local tcount = 0
+	local time = os.time()
 	while work do
 		self:step()
+		tcount = tcount + 1
+		if os.time() - time > 0 then
+			time = os.time()
+			self.tps = tcount
+			tcount = 0
+		end
 	end
 end
 

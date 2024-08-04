@@ -1,6 +1,10 @@
 require "sortutils"
 assert(type(table.sortinsert) == "function")
 
+local t = {}
+table.sortinsert(t, 4)
+assert(t[1] == 4)
+
 local t = {2,3,5,6}
 
 table.sortinsert(t, 4)
