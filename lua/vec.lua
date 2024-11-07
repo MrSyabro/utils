@@ -307,14 +307,27 @@ end
 ---@param vecb vec
 ---@return boolean
 function M.eq(veca, vecb)
-    local lena = #veca
-    if lena ~= #vecb then return false end
-	for i = 1, #veca do
-		if veca[i] ~= vecb[i] then
-			return false
-		end
-	end
-	return true
+    local btype = type(vecb)
+    if btype == "table" then
+        local lena = #veca
+        if lena ~= #vecb then return false end
+        for i = 1, #veca do
+            if veca[i] ~= vecb[i] then
+                return false
+            end
+        end
+        return true
+    elseif btype == "number" then
+        local lena = #veca
+        for i = 1, #veca do
+            if veca[i] ~= vecb then
+                return false
+            end
+        end
+        return true
+    else
+        error("Bad second operand")
+    end
 end
 
 local ms, mmax, mmin  = math.sqrt, math.max, math.min
