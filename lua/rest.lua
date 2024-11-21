@@ -1,14 +1,15 @@
-local https = require("ssl.https")
 local ltn12 = require("ltn12")
-local json = require("json")
+local json = require("dkjson")
 local url = require "socket.url"
 
+---Конструктор rest запросов
 ---@class RESTclass
 ---@field url string
 ---@field urlctr string
 ---@field urlsufix string
----@field headers table<string, string>
+---@field headers table<string, string|number>
 ---@field encoder fun(data: table):string
+---@field lib http|https
 local o = {}
 
 ---@alias REST table<string, REST>|fun(self: REST, req_data: table|string)|RESTclass
@@ -53,11 +54,12 @@ function o:__call(req_data)
 	end
 	if req_data then
 		req.headers["Content-Type"] = (self.encoder == o.jsonencoder) and "application/json" or "application/x-www-form-urlencoded"
+		req.headers["Content-Legth"] = #req_data
 		req.method = self.method
 		req.source = ltn12.source.string(req_data)
 	end
 
-	assert(https.request(req))
+	assert(self.lib.request(req))
 	self.urlctr = o.url
 	local out = table.concat(resq_data)
 	return json.decode(out)
@@ -95,7 +97,8 @@ function o:new(url, headers, encoder, urlsufix)
 		headers = headers or {},
 		urlsufix = urlsufix or "",
 		method = "GET",
-		encoder = encoder or o.jsonencoder
+		encoder = encoder or o.jsonencoder,
+		lib = string.match(url, "https") and require "ssl.https" or require "socket.http"
 	}, self)
 
 	return newoai
