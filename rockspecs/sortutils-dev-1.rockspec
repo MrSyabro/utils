@@ -1,4 +1,4 @@
-package = "vec"
+package = "sortutils"
 version = "dev-1"
 source = {
    url = "git+https://git@github.com/MrSyabro/utils.git",
@@ -15,6 +15,6 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-      createtable = "src/createtable.c"
+      sortutils = "src/sortutils.c"
    },
 }

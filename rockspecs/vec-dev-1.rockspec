@@ -1,11 +1,11 @@
 package = "vec"
 version = "dev-1"
 source = {
-   url = "git+https://git@github.com/MrSyabro/cutils.git",
+   url = "git+https://git@github.com/MrSyabro/utils.git",
    branch = "master",
 }
 description = {
-   homepage = "https://github.com/MrSyabro/cutils",
+   homepage = "https://github.com/MrSyabro/utils",
    license = "MIT/X11",
    maintainer = "MrSyabro",
 }
