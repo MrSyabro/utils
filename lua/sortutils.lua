@@ -10,19 +10,21 @@ end
 ---@param list `V`[]
 ---@param value V
 ---@param comp? fun(v1: V, v2: V):boolean?
+---@return integer
 function table.sortinsert(list, value, comp)
 	comp = comp or defcomp
 	for i = #list, 1, -1 do
 		local ivalue = rawget(list, i)
 		if comp(ivalue, value) then
 			list[i+1] = value
-			return
+			return i+1
 		else
 			list[i+1] = ivalue
 			list[i] = nil
 		end
 	end
 	list[1] = value
+	return 1
 end
 
 ---Быстрый посик по отсортированному массиву
@@ -32,6 +34,8 @@ end
 ---@param comp? fun(v1: V, v2: V):boolean?
 ---@param i integer?
 ---@param j integer?
+---@return integer?
+---@return V?
 function table.sortsearch(list, value, comp, i, j)
 	comp = comp or defcomp
 	i = i or #list
