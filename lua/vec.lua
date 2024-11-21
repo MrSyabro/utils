@@ -1,4 +1,6 @@
 ---@alias vec Vec|number[]
+---@alias vec2 vec
+---@alias vec3 vec2
 
 ---Методы без префикса `__` изменяют первый операнд, иначе создают новый вектор
 ---Если размер второго операнда меньше первого, недостающие элементы будут заменены 0 или 1 в зависимости от операции
@@ -10,13 +12,6 @@
 ---@operator mod (vec):vec
 ---@operator pow (vec):vec
 ---@operator unm (vec):vec
----@operator idiv (vec):vec
----@operator band (vec):vec
----@operator bor (vec):vec
----@operator bxor (vec):vec
----@operator bnot (vec):vec
----@operator shl (vec):vec
----@operator shr (vec):vec
 ---@operator concat (vec):vec
 local M = {}
 
@@ -63,7 +58,7 @@ function M.copy(vec, size)
 end
 
 ---Суммирует векторы
----@param veca vec
+---@param veca vec будет изменен
 ---@param vecb vec|number
 function M.add(veca, vecb)
     local btype = type(vecb)
@@ -106,7 +101,7 @@ function M.__add(veca, vecb)
 end
 
 ---Вычитает вектор vecb из вектора veca
----@param veca vec
+---@param veca vec будет изменен
 ---@param vecb vec|number
 ---@return vec
 function M.sub(veca, vecb)
@@ -150,7 +145,7 @@ function M.__sub(veca, vecb)
 end
 
 ---Умножает вектор на вектор
----@param veca vec
+---@param veca vec будет изменен
 ---@param vecb vec|number
 ---@return vec
 function M.mul(veca, vecb)
@@ -194,7 +189,7 @@ function M.__mul(veca, vecb)
 end
 
 ---Делит вектор на вектор
----@param veca vec
+---@param veca vec будет изменен
 ---@param vecb vec|number
 ---@return vec
 function M.div(veca, vecb)
@@ -238,7 +233,7 @@ function M.__div(veca, vecb)
 end
 
 ---Вознесение в степень vecb элементов vaca
----@param veca vec
+---@param veca vec будет изменен
 ---@param vecb vec|number
 ---@return vec
 function M.pow(veca, vecb)
@@ -282,7 +277,7 @@ function M.__pow(veca, vecb)
 end
 
 ---Одномесный минус элементов vec
----@param vec vec
+---@param vec vec будет изменен
 ---@return vec
 function M.unm(vec)
 	for i = 1, #vec do
@@ -304,7 +299,7 @@ end
 
 ---Поэлементно сравнивает 2 вектора
 ---@param veca vec
----@param vecb vec
+---@param vecb vec|number
 ---@return boolean
 function M.eq(veca, vecb)
     local btype = type(vecb)
@@ -383,7 +378,7 @@ function M.normalize(vec)
 end
 
 ---Нормализует вектор до единичного
----@param vec vec
+---@param vec vec будет изменен
 ---@return vec
 ---@return number len
 function M.__normalize(vec)
@@ -410,15 +405,17 @@ end
 ---@param veca vec
 ---@param vecb vec
 ---@param param number from 0 to 1
+---@return vec
 function M.lerp(veca, vecb, param)
     local fromToVec = M.sub(vecb, veca)
     return M.add(veca, M.mul(fromToVec, param))
 end
 
 ---Возвращает вектор между veca vecb в соотношении param
----@param veca vec
----@param vecb vec
+---@param veca vec будет изменен
+---@param vecb vec будет изменен
 ---@param param number from 0 to 1
+---@return vec
 function M.__lerp(veca, vecb, param)
     local fromToVec = M.__sub(vecb, veca)
     return M.__add(veca, M.mul(fromToVec, param))
@@ -426,10 +423,10 @@ end
 
 
 --[[ Метатабличные операции ]]--
-local tc, ti, sf = table.concat, table.insert, string.format
+local tc, sf = table.concat, string.format
 
 ---Выводит вектор как строку
----@param vec any
+---@param vec vec
 ---@return string
 function M.tostring(vec)
 	local out = {}
@@ -440,7 +437,7 @@ function M.tostring(vec)
 end
 
 ---Выводит вектор как строку
----@param vec any
+---@param vec vec
 ---@return string
 function M.__serialize(vec)
 	local out = "{"
