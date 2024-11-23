@@ -60,7 +60,7 @@ function o:__call(req_data)
 	end
 
 	assert(self.lib.request(req))
-	self.urlctr = o.url
+	self.urlctr = self.url
 	local out = table.concat(resq_data)
 	return json.decode(out)
 end
@@ -92,7 +92,7 @@ end
 ---@return REST
 function o:new(url, headers, encoder, urlsufix)
 	local newoai = setmetatable({
-		ulr = url,
+		url = url,
 		urlctr = url,
 		headers = headers or {},
 		urlsufix = urlsufix or "",
