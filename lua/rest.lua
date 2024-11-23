@@ -12,8 +12,7 @@ local url = require "socket.url"
 ---@field lib http|https
 local o = {}
 
----@alias REST table<string, REST>|fun(self: REST, req_data: table|string)|RESTclass
-
+---@enum Methods
 local methods = {
 	POST = true,
 	GET = true,
@@ -25,6 +24,21 @@ local methods = {
 	TRACE = true,
 	PATCH = true,
 }
+
+---Каждый ключ, кроме имени метода запроса, будет добавлен в URL запроса.
+---
+---Усли ключ - это таблица, она будет закодирована как `urlencoded` и добавлена в url запроса через `?`
+---
+---Вызов любого ключа инициирует запрос. Если передана строка, она будет записана как тело запроса,
+---если передана таблица, она будет закодирована с помощью `encoder` функции
+---и записана как тело запроса.
+---
+---Ожидается ответ в формате json, котрый будет декодирован и возвращен в ответе вызова.
+---
+---Имеется 2 стандартных энкодера:
+--- * `REST.urlencoder`
+--- * `REST.jsonencoder` выбирается по умолчанию
+---@alias REST table<string, REST>|fun(req_data: table|string)|RESTclass|Methods
 
 function o:__index(key)
 	if methods[key] then
