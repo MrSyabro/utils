@@ -1,5 +1,5 @@
 local vec = require "vec"
-local vnew, vlen = vec.new, vec.len
+local vnew = vec.new
 local mcos, msin, matan = math.cos, math.sin, math.atan
 
 local M = {}
@@ -20,14 +20,13 @@ end
 ---Переводит декартовый vec3 в угловой vec2
 ---@param v vec3
 ---@return vec2 angles
----@return number len
 function M.dec2rad(v)
-	local len = vlen(v)
+	local len = (v[1]^2 + v[2]^2)^0.5
 	local out = vnew(
-		matan(v[1], v[2]),
+		matan(v[2], v[1]),
 		matan(len, v[3])
 	)
-	return out, len
+	return out
 end
 
 ---Перводит угол в декартовый vec2
