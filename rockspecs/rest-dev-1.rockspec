@@ -1,4 +1,4 @@
-package = "createtable"
+package = "rest"
 version = "dev-1"
 source = {
    url = "git+https://git@github.com/MrSyabro/utils.git",
@@ -10,11 +10,12 @@ description = {
    maintainer = "MrSyabro",
 }
 dependencies = {
-   "lua >= 5.2"
+   "lua >= 5.2",
+   "luasocket",
 }
 build = {
    type = "builtin",
    modules = {
-      createtable = "src/createtable.c"
+      rest = "lua/rest.lua"
    },
 }
