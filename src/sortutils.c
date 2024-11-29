@@ -15,14 +15,16 @@ static int lua_defcomp(lua_State *L) {
 static int lua_sortinser(lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     luaL_checkany(L, 2);
-    lua_Unsigned n = lua_rawlen(L, 1);
+    lua_len(L, 1);
+    lua_Integer n = lua_tointeger(L, -1);
+    lua_pop(L, 1);
     if (!lua_isfunction(L, 3)) {
         lua_settop(L, 2);
         lua_pushcfunction(L, lua_defcomp);
     }
 
     for (int i = n; i >= 1; i--) {
-        lua_rawgeti(L, 1, i);
+        lua_geti(L, 1, i);
 
         // подготавливаем стек к вызову компоратора
         lua_pushvalue(L, 3);
@@ -33,14 +35,14 @@ static int lua_sortinser(lua_State *L) {
 
         if (lua_toboolean(L, -1)) {
             lua_pop(L, 3);
-            lua_rawseti(L, 1, ++i);
+            lua_seti(L, 1, ++i);
             lua_pushinteger(L, i);
             return 1;
         } else {
             lua_pop(L, 1);
-            lua_rawseti(L, 1, i+1);
+            lua_seti(L, 1, i+1);
             lua_pushnil(L);
-            lua_rawseti(L, 1, i);
+            lua_seti(L, 1, i);
         }
     }
 
@@ -53,7 +55,9 @@ static int lua_sortinser(lua_State *L) {
 static int lua_search(lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE); //list
     luaL_checkany(L, 2); //value
-    lua_Unsigned n = lua_rawlen(L, 1);
+    lua_len(L, 1);
+    lua_Integer n = lua_tointeger(L, -1);
+    lua_pop(L, 1);
     if (lua_isnoneornil(L, 3)) {
         lua_settop(L, 2);
         lua_pushcfunction(L, lua_defcomp);
@@ -75,14 +79,14 @@ static int lua_search(lua_State *L) {
 
     // подготавливаем стек к вызову компоратора
     lua_pushvalue(L, 3);
-    lua_rawgeti(L, 1, mid);
+    lua_geti(L, 1, mid);
     lua_pushvalue(L, 2);
 
     lua_call(L, 2, 1);
 
     if (lua_isnoneornil(L, -1)) {
         lua_pushinteger(L, mid);
-        lua_rawgeti(L, 1, mid);
+        lua_geti(L, 1, mid);
         return 2;
     } else {
         int iseq = lua_toboolean(L, -1);
