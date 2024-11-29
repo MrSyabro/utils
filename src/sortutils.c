@@ -47,7 +47,7 @@ static int lua_sortinser(lua_State *L) {
     }
 
     lua_pop(L, 1);
-    lua_rawseti(L, 1, 1);
+    lua_seti(L, 1, 1);
     lua_pushinteger(L, 1);
     return 1;
 }
