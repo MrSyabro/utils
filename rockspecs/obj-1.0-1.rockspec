@@ -1,5 +1,5 @@
 package = "obj"
-version = "dev-1"
+version = "1.0-1"
 source = {
    url = "git+https://git@github.com/MrSyabro/utils.git",
    branch = "master",
