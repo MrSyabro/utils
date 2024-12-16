@@ -44,15 +44,34 @@ function M.newsingle(s)
     return newvec
 end
 
+---Создает массив заполненый от `start` дo `finish`
+---@param start number
+---@param finish number
+---@param step number?
+function M.range(start, finish, step)
+    local newvec = setmetatable({}, M)
+    step = step or 1
+    local nelem = 1
+    for i = start, finish, step do
+        newvec[nelem] = i
+        nelem = nelem + 1
+    end
+    return newvec
+end
+
 ---Создает копию вектора
 ---@param vec vec
----@param size number?
+---@param i integer? последний элемент для копирования, размер вектора по умолчанию
+---@param j integer? первый элемент, с которого начнется копирование, 1 по умолчанию
 ---@return vec
-function M.copy(vec, size)
+function M.copy(vec, i, j)
     local newvec = setmetatable({}, M)
-    size = size or #vec
-    for i = 1, size do
-        newvec[i] = vec[i] or 0
+    i = i or #vec
+    j = j or 1
+    local nelem = 1
+    for n = j, i do
+        newvec[nelem] = vec[n] or 0
+        nelem = nelem + 1
     end
     return newvec
 end

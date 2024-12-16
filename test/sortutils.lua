@@ -1,5 +1,5 @@
 require "sortutils"
-assert(type(table.sortinsert) == "function")
+assert(type(table.sortsearch) == "function")
 
 local t = {}
 table.sortinsert(t, 4)
@@ -13,8 +13,8 @@ assert(t[3] == 4)
 table.sortinsert(t, 1)
 assert(t[1] == 1)
 
-table.sortinsert(t, 2)
-assert(t[3] == 2)
+-- table.sortinsert(t, 2) в сортированном списке не может быть 2 одинаковых элемента
+-- assert(t[3] == 2)
 
 t = {5, 4, 2, 1}
 
