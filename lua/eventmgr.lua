@@ -10,19 +10,15 @@ local metatables = {
 ---@class _ph
 local _ph = {}
 
---[[ ### Event - эмитатор событий
-`Event` принимает колбеки типов:
-- `function`
-- `table`
+--[[ ### Event
+Предназначен для множественного вызова функций с переданными аргументами.
 
-Вызов `Event:send(...)` рассылает всем колбекам переданные
-аргументы.
-
-Функции экранированы и вызывают `warn` с сообщением ошибки
-и названием эмитатора указанного при создании.
+Функции экранированы и вызывают `warn` с названием ивента
+и сообщением ошибки. Учтите, что систему `warn` нужно включить,
+что бы увидеть сообщения.
 ]]
 ---@class Event : Object
----@operator call(...):nil #Рассылает событие по списку рассылки
+---@operator call(...):Event #Рассылает событие по списку рассылки
 ---@operator add(any):any
 ---@operator sub(any):Event
 ---@field name string #имя менеджера для дебага
@@ -32,10 +28,9 @@ local eventmgr_class = obj:new "Event"
 eventmgr_class.name = "Test"
 eventmgr_class.enabled = true
 
----Добавляет функцию, рутину или метод объекта в список рассылки `Event`
----
----Список колбеков по умолчанию выбирается в зависимости от `self.weak`
----или из 2го аргумента
+---Добавляет функцию или объект в список рассылки `Event`.
+---Ссылки на методы обьектов не будут удерживаться в независимости от слабости указаной в конструкторе,
+---поэтому не ленитесь и сохраняйте методы в самих обьектах.
 ---@generic O : any
 ---@param callback O
 ---@param method fun(self: O, ...: any): boolean?
@@ -63,7 +58,7 @@ function eventmgr_class:__sub(callback)
 end
 
 ---Фильтр по умолчанию. Вызывается перед рассылкой сообщения. Если возвращает
----`false`, то сообщение не отправляется. Фильтр по умолчанию возвращает `enabled`
+---`false`, то сообщение не отправляется. Фильтр по умолчанию возвращает поле `enabled`
 ---
 ---При переопредилении этого метода стоит учесть работу `enabled` параметра.
 ---@return boolean
@@ -101,12 +96,12 @@ function eventmgr_class:__tostring()
 end
 
 ---Создает экземпляр `Event`
----@param name string #имя для обработчика (по умолчанию Test)
----@param weak boolean? #делает список колбеков слабой таблицей
+---@param name string? имя для обработчика (по умолчанию Test)
+---@param weak boolean? если передано `true`, `Event` не будет удерживать ссылки на колбеки-функции
 ---@return Event
 function eventmgr_class:new(name, weak)
 	local mgr = obj.new(self)
-	mgr.name = name
+	if name then mgr.name = name end
 	mgr.callback_fns = setmetatable({}, metatables[weak or false])
 
 	return mgr
