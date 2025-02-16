@@ -3,7 +3,7 @@ local to_json, json = pcall(require, "dkjson")
 local to_lua, ser = pcall(require, "serialize")
 
 ---@class LogHandler : Event
----@field send fun(self: LogHandler, collector: Collector, mess: string)
+---@field send fun(self: LogHandler, logger: Logger, mess: string)
 
 local M = {}
 M.default_stream = io.stdout
@@ -23,8 +23,10 @@ function M.human(streams)
 		new_handler:addCallback(io.write)
 	end
 
-	function new_handler:send(collector, mess)
-		local tags, args = mess.tags, mess.data
+	---@param logger Logger
+	---@param args table
+	function new_handler:send(logger, args)
+		local tags = logger.tags
 		local word
 		if args.n > 1 then
 			local words = {}
@@ -35,19 +37,11 @@ function M.human(streams)
 		else
 			word = tostring(args[1])
 		end
-		if mess.traceback then
-			local tb_out = {}
-			for i, tbdi in ipairs(mess.traceback) do
-				table.insert(tb_out,
-					"\t" ..
-					tbdi.short_src ..
-					":" ..
-					tostring(tbdi.currentline) .. " in " .. (tbdi.name or tbdi.what or (tbdi.short_src .. ":" .. tbdi.linedefined)))
-			end
-			word = word .. "\nstack traceback: \n" .. table.concat(tb_out, "\n")
+		if args.level == LogLevels.ERROR then
+			word = debug.traceback(word, 5)
 		end
 		Event.send(self,
-			("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC", mess.time), LogLevels[mess.level], tags.service, word))
+			("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC"), LogLevels[args.level], tags.service, word))
 	end
 
 	return new_handler
@@ -57,7 +51,7 @@ if to_json then
 	---Обработчик, который вываливает данные в json
 	---@param streams table<number, file*|{write: fun(data: string)}>?
 	---@return LogHandler
-	function M.json(collector, streams)
+	function M.json(logger, streams)
 		local new_handler = Event:new "JSONLogHandler" --[[@as LogHandler]]
 		if streams then
 			for _, stream in ipairs(streams) do
@@ -83,7 +77,7 @@ if to_lua then
 	---Обработчик, который вываливает данные в lua таблице
 	---@param streams table<number, file*|{write: fun(data: string)}>?
 	---@return LogHandler
-	function M.lua(collector, streams)
+	function M.lua(logger, streams)
 		local new_handler = Event:new "LuaLogHandler" --[[@as LogHandler]]
 		if streams then
 			for _, stream in ipairs(streams) do

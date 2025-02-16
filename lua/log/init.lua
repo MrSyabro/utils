@@ -1,115 +1,76 @@
 local obj = require "obj"
-local Collector = require "log.collector"
+local Event = require "eventmgr"
+local defhandler = require "log.handlers".human()
+
+local loggers = {}
+
+local tp, getmt = table.pack, getmetatable
+local function parse_table(data)
+	local out = { "" }
+	for key, value in pairs(data) do
+		table.insert(out, ("[%s] = %q"):format(tostring(key), tostring(value)))
+	end
+	return table.concat(out, "\n")
+end
+local function parse_args(args, level)
+	for i, arg in ipairs(args) do
+		local mt = getmt(arg)
+		if mt and mt.__log then
+			args[i] = mt.__log(arg, level)
+		elseif type(arg) == "table" then
+			args[i] = parse_table(arg)
+		else
+			args[i] = tostring(arg)
+		end
+	end
+	return args
+end
+
 
 ---@enum LogLevels
 LogLevels = {
-	ERROR = 1,
-	WARN = 2,
-	INFO = 3,
-	DEBUG = 4,
-	VERBOSE = 5,
 	"ERROR",
 	"WARN",
 	"INFO",
 	"DEBUG",
+	"TRACE",
 	"VERBOSE",
 }
 
-local function collector_filter(self, collector, mess)
-	return self.enabled and mess.level <= self.level
-end
-
 ---@class Logger : Object
----@field collector Collector
----@field tags {service: string}|table
----@field debuging boolean
----@field verbosing boolean
-local logger = obj:new "Logger"
-logger.tags = {
-	service = "Main"
-}
-logger.collector = Collector
-logger.verbosing = false
-Collector.receive.filter = collector_filter
-Collector.receive.level = LogLevels.INFO
-local cache = {
-	Main = logger
-}
+---@field tags table<string, string|number>
+---@field level LogLevels
+---@field on_message Event
+local logger_class = obj:new "Logger"
+logger_class.on_message = Event:new "LoggerMain:on_message"
+logger_class.tags = { service = "Main" }
+logger_class.on_message:addCallback(defhandler, defhandler.send)
+for i, key in ipairs(LogLevels) do
+	LogLevels[key] = i
+	logger_class[string.lower(key)] = function (self, ...)
+		if i <= self.level then
+			local args = parse_args(tp(...), i)
+			args.level = i
 
----Вывод информационного сообщения
----@vararg any
-function logger:info(...)
-	self.collector:collect(LogLevels.INFO, self.tags, ...)
-end
-
----Вывод сообщения внимание
----@vararg any
-function logger:warn(...)
-	self.collector:collect(LogLevels.WARN, self.tags, ...)
-end
-
----Вывод ошибки. Автоматически выводит трассировку
----@vararg any
-function logger:error(...)
-	self.collector:collect_tb(LogLevels.ERROR, self.tags, ...)
-end
-
----отладочный вывод
----@vararg any
-function logger:debug(...)
-	self.collector:collect(LogLevels.DEBUG, self.tags, ...)
-end
-
----Дополнительный отладоный вывод
----@vararg any
-function logger:verbose(...)
-	if self.verbosing then
-		self.collector:collect(LogLevels.VERBOSE, self.tags, ...)
-	end
-end
-
----Дополнительный динамический отладочный вывод. Если включен verbosing, выдаст verbose сообщение, иначе debug
-function logger:vdbg(...)
-	if self.verbosing then
-		self.collector:collect(LogLevels.VERBOSE, self.tags, ...)
-	else
-		self.collector:collect(LogLevels.DEBUG, self.tags, ...)
-	end
-end
-
----Установить новый сборщик
----@param collector Collector?
-function logger:setcollector(collector)
-	if collector then
-		if not collector.receive.level then
-			collector.receive.level = self.collector.receive.level
+			self:on_message(args)
 		end
-		self.collector = collector
-		collector.receive.filter = collector_filter
 	end
 end
+logger_class.level = LogLevels.INFO
 
----Устанавливает уровень вывода логгера
----@param level LogLevels
-function logger:setlevel(level)
-	self.collector.receive.level = level
-	self.verbosing = level == LogLevels.VERBOSE
-end
-
----Создает новый логгер
----@param service string
----@param collector Collector?
+---@param name string
 ---@return Logger
-function logger:new(service, collector)
-	local cached = cache[service]
-	if cached then return cached end
+function logger_class:new(name)
+	local existed = loggers[name]
+	if existed then return existed end
 
-	local newl = obj.new(self)
-	newl.tags = setmetatable({ service = service }, { __index = self.tags })
-	newl:setcollector(collector)
+	local newlog = obj.new(self)
+	newlog.tags = setmetatable({service = name}, {__index = self.tags})
 
-	cache[service] = newl
-	return newl
+	loggers[name] = newlog
+	return newlog
 end
 
-return logger
+loggers.Main = logger_class
+
+return logger_class
