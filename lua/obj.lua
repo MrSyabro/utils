@@ -1,14 +1,10 @@
-local weakmt = {__mode = "k"}
-
 ---Простейщая версия обьекта на основе метатаблице
 ---@class Object
 ---@field __name string
 ---@field __index table
----@field __childs table
 local O = {}
 O.__index = O
 O.__name = "Object"
-O.__childs = setmetatable({}, weakmt)
 
 ---Создает новый унследованный обьект
 ---@generic O : Object
@@ -21,10 +17,29 @@ function O.new(self, name, data)
 	if name then
 		data.__index = data
 		data.__name = name
-		data.__childs = setmetatable({}, weakmt)
 	end
-	self.__childs[data] = true
 	return setmetatable(data, self)
+end
+
+---Проверяет, является ли обьект дочерным
+---@param self Object
+---@param obj Object
+---@return boolean
+function O.is_child(self, obj)
+	return getmetatable(obj) == self
+end
+
+---Проверяет, наследуется ли класс обьектом
+---@param self Object
+---@param obj Object
+---@return boolean
+function O.is_inherit(self, obj)
+	local parent = getmetatable(obj)
+	while parent do
+		if parent == self then return true end
+		parent = getmetatable(parent)
+	end
+	return false
 end
 
 ---Рекурсивно копирует обьект включая метатаблицу.
