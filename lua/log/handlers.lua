@@ -41,7 +41,7 @@ function M.human(streams)
 			word = debug.traceback(word, 5)
 		end
 		Event.send(self,
-			("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC"), LogLevels[args.level], tags.service, word))
+			("[%s][%s] %s: %s\n"):format(os.date("!%d.%m %H:%M:%S UTC"), LogLevels[args.level], logger.name, word))
 	end
 
 	return new_handler

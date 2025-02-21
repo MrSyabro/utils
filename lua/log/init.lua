@@ -40,6 +40,7 @@ LogLevels = {
 ---@class Logger : Object
 ---@field tags table<string, string|number>
 ---@field level LogLevels
+---@field name string
 ---@field on_message Event
 local logger_class = obj:new "Logger"
 logger_class.on_message = Event:new "LoggerMain:on_message"
@@ -65,7 +66,7 @@ function logger_class:new(name)
 	if existed then return existed end
 
 	local newlog = obj.new(self)
-	newlog.tags = setmetatable({service = name}, {__index = self.tags})
+	newlog.name = name
 
 	loggers[name] = newlog
 	return newlog
