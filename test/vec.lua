@@ -6,6 +6,7 @@ local v2 = assert(vec.new(1,4,8))
 assert(v2:eq {1,4,8})
 assert(vec.range(1, 3, 0.5):eq {1, 1.5, 2, 2.5, 3})
 assert(vec.range(3, 1, -0.5):eq {3, 2.5, 2, 1.5, 1})
+assert(vec.range(3, 1):eq {3, 2, 1})
 local v3 = vec.range(1,6)
 
 assert((v1 + v2):eq {2,5,9,1})

@@ -50,15 +50,16 @@ static int lvec_newsingle (lua_State *L) {
 static int lvec_newrange (lua_State *L) {
     lua_Number start = luaL_checknumber(L, 1);
     lua_Number finish = luaL_checknumber(L, 2);
-    lua_Number step = 1;
-    if (lua_isnumber(L, 3)) step = lua_tonumber(L, 3);
+    lua_Number step = (lua_gettop(L) >= 3) ? luaL_checknumber(L, 3) : (start < finish ? 1 : -1);
+    if (step == 0) luaL_error(L, "step cannot be zero");
 
     lua_createtable(L, (finish - start) / step + 1, 0);
     luaL_getmetatable(L, "vec");
     lua_setmetatable(L, -2);
 
+    int is_increase = step > 0;
     lua_Integer ptr = 1;
-    for (lua_Number i = start; (step > 0) ? (i <= finish) : (i >= finish); i+=step) {
+    for (lua_Number i = start; is_increase ? (i <= finish) : (i >= finish); i+=step) {
         lua_pushnumber(L, i);
         lua_rawseti(L, -2, ptr);
         ptr++;

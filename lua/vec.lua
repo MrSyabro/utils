@@ -63,8 +63,9 @@ end
 ---@param finish number
 ---@param step number?
 function M.range(start, finish, step)
+    assert(step ~= 0, "step cannot be zero")
     local newvec = setmetatable({}, M)
-    step = step or 1
+    step = step or start < finish and 1 or -1
     local nelem = 1
     for i = start, finish, step do
         newvec[nelem] = i
