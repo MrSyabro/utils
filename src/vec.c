@@ -47,6 +47,50 @@ static int lvec_newsingle (lua_State *L) {
     return 1;
 }
 
+static int lvec_newrange (lua_State *L) {
+    lua_Number start = luaL_checknumber(L, 1);
+    lua_Number finish = luaL_checknumber(L, 2);
+    lua_Number step = 1;
+    if (lua_isnumber(L, 3)) step = lua_tonumber(L, 3);
+
+    lua_createtable(L, (finish - start) / step + 1, 0);
+    luaL_getmetatable(L, "vec");
+    lua_setmetatable(L, -2);
+
+    lua_Integer ptr = 1;
+    for (lua_Number i = start; (step > 0) ? (i <= finish) : (i >= finish); i+=step) {
+        lua_pushnumber(L, i);
+        lua_rawseti(L, -2, ptr);
+        ptr++;
+    }
+
+    return 1;
+}
+
+static int lvec_fromhex (lua_State *L) {
+    size_t l = 0;
+    const char *input = luaL_checklstring(L, 1, &l);
+    unsigned char val = 0;
+
+    if (*input == '#') {
+        l--;
+        input++;
+    }
+
+    lua_createtable(L, (int)l/2, 0);
+    luaL_getmetatable(L, "vec");
+    lua_setmetatable(L, -2);
+
+    for (size_t count = 1; count <= l; count++) {
+        sscanf(input, "%2hhx", &val);
+        input += 2;
+        lua_pushnumber(L, val);
+        lua_rawseti(L, -2, count);
+    }
+
+    return 1;
+}
+
 static int lvec_add (lua_State *L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     lua_Unsigned n = lua_rawlen(L, 1);
@@ -703,6 +747,8 @@ static const struct luaL_Reg vec [] = {
     {"new", lvec_new},
     {"newzero", lvec_newzero},
     {"newsingle", lvec_newsingle},
+    {"range", lvec_newrange},
+    {"fromhex", lvec_fromhex},
     {"add", lvec_add}, {"__add", lvec__add},
     {"sub", lvec_sub}, {"__sub", lvec__sub},
     {"mul", lvec_mul}, {"__mul", lvec__mul},

@@ -44,6 +44,20 @@ function M.newsingle(s)
     return newvec
 end
 
+---Преобразует hex строку в массив
+---@param hexstring string
+function M.fromhex(hexstring)
+    local tn = tonumber
+    local out = setmetatable({}, M)
+    local i = 1
+    for hexelement in hexstring:gmatch('%x%x') do
+        out[i] = tn(hexelement, 16)
+        i = i + 1
+    end
+
+    return out
+end
+
 ---Создает массив заполненый от `start` дo `finish`
 ---@param start number
 ---@param finish number
