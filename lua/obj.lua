@@ -53,7 +53,7 @@ function O.copy(self, data)
 
 	for key, value in pairs(self) do
 		if type(value) == "table" then
-			if value ~= O then
+			if value == O then
 				data[key] = O
 			else
 				data[key] = O.copy(value)
