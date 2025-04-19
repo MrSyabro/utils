@@ -25,7 +25,9 @@ local _ph = {}
 ---@field private weak boolean?
 ---@field protected callback_fns table<any, _ph|function> #список функций колбеков
 local eventmgr_class = obj:new "Event"
-eventmgr_class.name = "Test"
+eventmgr_class.placeholder = _ph
+eventmgr_class.metatables = metatables
+eventmgr_class.name = "Default"
 eventmgr_class.enabled = true
 
 ---Добавляет функцию или объект в список рассылки `Event`.
