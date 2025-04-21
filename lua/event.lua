@@ -1,14 +1,6 @@
 local obj = require "obj"
 
-local dtb = debug.traceback
-
-local metatables = {
-	[false] = {__mode = "v"},
-	[true] = {__mode = "vk"},
-}
-
 ---@class _ph
-local _ph = {}
 
 --[[ ### Event
 Предназначен для множественного вызова функций с переданными аргументами.
@@ -22,13 +14,20 @@ local _ph = {}
 ---@operator add(any):any
 ---@operator sub(any):Event
 ---@field name string #имя менеджера для дебага
+---@field traceback fun(message: any): string
 ---@field private weak boolean?
+---@field protected metatables table<boolean, {__mode: 'v'|'vk'}>
+---@field protected placeholder _ph
 ---@field protected callback_fns table<any, _ph|function> #список функций колбеков
-local eventmgr_class = obj:new "Event"
-eventmgr_class.placeholder = _ph
-eventmgr_class.metatables = metatables
-eventmgr_class.name = "Default"
-eventmgr_class.enabled = true
+local event_class = obj:new "Event"
+event_class.placeholder = {} --[[@as _ph]]
+event_class.metatables = {
+	[false] = {__mode = "v"},
+	[true] = {__mode = "vk"},
+}
+event_class.name = "Default"
+event_class.enabled = true
+event_class.traceback = debug.traceback
 
 ---Добавляет функцию или объект в список рассылки `Event`.
 ---Ссылки на методы обьектов не будут удерживаться в независимости от слабости указаной в конструкторе,
@@ -38,12 +37,12 @@ eventmgr_class.enabled = true
 ---@param method fun(self: O, ...: any): boolean?
 ---@return O
 ---@overload fun(self: Event, callback: (fun(...:any):boolean?)): function
-function eventmgr_class:addCallback(callback, method)
-	self.callback_fns[callback] = method or _ph
+function event_class:add_callback(callback, method)
+	self.callback_fns[callback] = method or self.placeholder
 	return callback
 end
-function eventmgr_class:__add(callback, method)
-	return self:addCallback(callback, method)
+function event_class:__add(callback, method)
+	return self:add_callback(callback, method)
 end
 
 ---Удаляет функцию, рутину или метод объект из списка рассылки `Event`
@@ -51,12 +50,12 @@ end
 ---@param callback O
 ---@return Event self
 ---@overload fun(self: Event, callback: function): Event
-function eventmgr_class:rmCallback(callback)
+function event_class:rm_callback(callback)
 	self.callback_fns[callback] = nil
 	return self
 end
-function eventmgr_class:__sub(callback)
-	return self:rmCallback(callback)
+function event_class:__sub(callback)
+	return self:rm_callback(callback)
 end
 
 ---Фильтр по умолчанию. Вызывается перед рассылкой сообщения. Если возвращает
@@ -64,15 +63,16 @@ end
 ---
 ---При переопредилении этого метода стоит учесть работу `enabled` параметра.
 ---@return boolean
-function eventmgr_class:filter(...)
+function event_class:filter(...)
 	return self.enabled
 end
 
 ---Рассылает событие по списку рассылки, если `filter(...)` вернет `true`
 ---@param ... any?
 ---@return Event self
-function eventmgr_class:send(...)
+function event_class:send(...)
 	if self:filter(...) then
+		local dtb, _ph = self.traceback, self.placeholder
 		for callback_obj, callback_mtd in pairs(self.callback_fns) do
 			local state, errmsg
 			if callback_mtd == _ph then
@@ -89,11 +89,11 @@ function eventmgr_class:send(...)
 	end
 	return self
 end
-function eventmgr_class:__call(...)
+function event_class:__call(...)
 	return self:send(...)
 end
 
-function eventmgr_class:__tostring()
+function event_class:__tostring()
 	return self.__name .. " `" .. self.name .. "`"
 end
 
@@ -101,12 +101,13 @@ end
 ---@param name string? имя для обработчика (по умолчанию Test)
 ---@param weak boolean? если передано `true`, `Event` не будет удерживать ссылки на колбеки-функции
 ---@return Event
-function eventmgr_class:new(name, weak)
+function event_class:new(name, weak, traceback_handler)
 	local mgr = obj.new(self)
 	if name then mgr.name = name end
-	mgr.callback_fns = setmetatable({}, metatables[weak or false])
+	mgr.traceback = traceback_handler
+	mgr.callback_fns = setmetatable({}, self.metatables[weak or false])
 
 	return mgr
 end
 
-return eventmgr_class
+return event_class
