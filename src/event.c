@@ -1,5 +1,6 @@
 #include <lua.h>
 #include <lauxlib.h>
+#include <stdio.h>
 
 static int levent_new (lua_State *L) {
         const char is_named = !lua_isnoneornil(L, 2);
@@ -18,7 +19,7 @@ static int levent_new (lua_State *L) {
         lua_rawget(L, -2); //weak mode
         lua_setmetatable(L, -3);
         lua_pop(L, 1);
-        lua_setfield(L, 2, "callback_fns");
+        lua_setfield(L, -2, "callback_fns");
 
         lua_pushvalue(L, 1);
         lua_setmetatable(L, -2);
@@ -32,6 +33,7 @@ static int sendcont (lua_State *L, int status, lua_KContext top) {
         int tb_index = top + 1;
 
         if (status != LUA_OK) {
+                printf("in sendcont NOT LUA_OK status %d\n", status);
                 lua_getglobal(L, "warn");
                 lua_insert(L, lua_gettop(L) - 1);
                 lua_call(L, 1, 0);
@@ -48,16 +50,17 @@ static int sendcont (lua_State *L, int status, lua_KContext top) {
                 for (int i = 0; i < args; i++) lua_pushvalue(L, 2 + i); //копируем аргументы
                 int status = lua_pcallk(L, args + add_args, 1, tb_index, top, sendcont);
                 if (status != LUA_OK) {
+                  printf("NOT LUA_OK status %d\n", status);
                         lua_getglobal(L, "warn");
                         lua_insert(L, lua_gettop(L) - 1);
                         lua_call(L, 1, 0);
-                } else if (lua_toboolean(L, -1)) {
+                } else if (lua_isboolean(L, -1) && lua_toboolean(L, -1)) {
                         lua_pop(L, 1);
 
                         lua_pushvalue(L, -1);
                         lua_pushnil(L);
 
-                        lua_settable(L, top + 2); // [cb_fn] = nil
+                        lua_rawset(L, top + 2); // [cb_fn] = nil
                 } else lua_pop(L, 1);
         }
 
@@ -117,11 +120,18 @@ static int levent_rmcallback (lua_State *L) {
         return 1;
 }
 
+static int __callcont (lua_State *L, int status, lua_KContext top) {
+    if (status != LUA_OK) {
+      printf("in callcont NOT LUA_OK status %d\n", status);
+    }
+    return 0;
+}
+
 static int levent__call (lua_State *L) {
         int top = lua_gettop(L);
         lua_getfield(L, 1, "send");
         lua_insert(L, 1);
-        lua_call(L, top, 0);
+        lua_callk(L, top, 0, 0, __callcont);
 
         return 0;
 }
@@ -158,7 +168,7 @@ static const struct luaL_Reg event [] = {
         {"send", levent_send},
         {"filter", levent_filter},
         {"add_callback", levent_addcallback},
-        {"rm_allback", levent_rmcallback},
+        {"rm_callback", levent_rmcallback},
         {"__call", levent__call},
         {"__add", levent__add},
         {"__sub", levent__sub},
