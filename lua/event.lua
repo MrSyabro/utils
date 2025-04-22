@@ -15,7 +15,6 @@ local obj = require "obj"
 ---@operator sub(any):Event
 ---@field name string #имя менеджера для дебага
 ---@field traceback fun(message: any): string
----@field private weak boolean?
 ---@field protected metatables table<boolean, {__mode: 'v'|'vk'}>
 ---@field protected placeholder _ph
 ---@field protected callback_fns table<any, _ph|function> #список функций колбеков
@@ -23,7 +22,7 @@ local event_class = obj:new "Event"
 event_class.placeholder = {} --[[@as _ph]]
 event_class.metatables = {
 	[false] = {__mode = "v"},
-	[true] = {__mode = "vk"},
+	[true] = {__mode = "kv"},
 }
 event_class.name = "Default"
 event_class.enabled = true
@@ -45,7 +44,7 @@ function event_class:__add(callback, method)
 	return self:add_callback(callback, method)
 end
 
----Удаляет функцию, рутину или метод объект из списка рассылки `Event`
+---Удаляет функцию или метод объекта из списка рассылки `Event`
 ---@generic O
 ---@param callback O
 ---@return Event self
