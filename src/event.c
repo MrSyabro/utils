@@ -1,6 +1,5 @@
 #include <lua.h>
 #include <lauxlib.h>
-#include <stdio.h>
 
 static int levent_new(lua_State *L)
 {
