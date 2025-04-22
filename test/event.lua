@@ -1,70 +1,75 @@
 local Event = require "event"
 warn "@on"
+Counter = 0
 
-local e1 = Event:new("Test1")
+local function test_leak(mode)
+	Counter = 0
+	local e1 = Event:new("Test1", mode)
+	local cbs_mt = getmetatable(e1.callback_fns)
+	assert(cbs_mt.__mode == (mode and "kv" or "v"))
 
-local counter = 0
+	local test_obj = {
+		  data = 10
+	}
+	function test_obj:test_method()
+		assert(self.data == 10)
+		Counter = Counter + 1
+		return self.data
+	end
+	e1:add_callback(test_obj, test_obj.test_method)
 
-local test_obj = {
-    data = 10
-}
+	local function test_func()
+		Counter = Counter + 1
+	end
+	e1:add_callback(test_func)
 
-local function test(self)
-	assert(self.data == 10)
-	counter = counter + 1
+	e1:add_callback(function(mess)
+		assert(mess == "test")
+		Counter = Counter + 1
+		return true
+	end)
+
+	collectgarbage()
+	e1:send "test"
+	assert(Counter == (mode and 2 or 3))
+	test_func = nil
+	collectgarbage()
+	e1()
+	assert(Counter == (mode and 3 or 5))
+
+	test_obj = nil
+	collectgarbage()
+	e1:send()
+	assert(Counter == (mode and 3 or 7))
 end
+test_leak(true)
+test_leak(false)
 
-local function test2()
-	counter = counter + 1
-	return true
-end
-
-test_obj.mt = test
-
-e1:add_callback(test_obj, test)
-e1:add_callback(test2)
-test2 = nil
-test = nil
-
-e1:send "test"
-collectgarbage()
-e1()
-assert(counter == 3)
-
-e1:rm_callback(test_obj)
-
-local counter = 0
+--Coroutine test
+Counter = 0
 local e1 = Event:new "test2"
 
-	e1:add_callback(function()
-		print "Test1 1"
-		counter = counter + 1
-		coroutine.yield()
-		print "Test1 2"
-		counter = counter + 1
-	end)
-
-	e1:add_callback(function()
-		print "Test2 1"
-		counter = counter + 1
-		coroutine.yield()
-		print "Test2 2"
-		counter = counter + 1
-	end)
-
-local c = coroutine.create(function()
-	print "TestM 1"
-	counter = counter + 1
-	e1()
-	print "TestM 2"
-	counter = counter + 1
-	print "Test2"
+e1:add_callback(function()
+	Counter = Counter + 1
+	coroutine.yield()
+	Counter = Counter + 1
 end)
 
-print "First resume"
+e1:add_callback(function()
+	Counter = Counter + 1
+	coroutine.yield()
+	Counter = Counter + 1
+end)
+
+local c = coroutine.create(function()
+	Counter = Counter + 1
+	e1()
+	Counter = Counter + 1
+end)
+
 coroutine.resume(c)
 assert(coroutine.status(c) == "suspended")
 coroutine.resume(c)
 coroutine.resume(c)
---assert(counter == 6)
+assert(Counter == 6, Counter)
 assert(coroutine.status(c) == "dead")
