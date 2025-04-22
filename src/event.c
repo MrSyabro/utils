@@ -32,12 +32,19 @@ static int sendcont (lua_State *L, int status, lua_KContext top) {
         int ph_index = top + 2;
         int tb_index = top + 1;
 
-        if (status != LUA_OK) {
-                printf("in sendcont NOT LUA_OK status %d\n", status);
+        if (status != LUA_OK && status != LUA_YIELD) {
+                printf("in sendcont NOT LUA_OK or yield status %d\n", status);
                 lua_getglobal(L, "warn");
                 lua_insert(L, lua_gettop(L) - 1);
                 lua_call(L, 1, 0);
-        }
+        } else if (lua_isboolean(L, -1) && lua_toboolean(L, -1)) {
+                lua_pop(L, 1);
+
+                lua_pushvalue(L, -1);
+                lua_pushnil(L);
+
+                lua_rawset(L, top + 2); // [cb_fn] = nil
+        } else lua_pop(L, 1);
         while(lua_next(L, -2) != 0) {
                 char add_args = 0;
                 if(lua_compare(L, -1, ph_index, LUA_OPEQ)) { // функция
@@ -49,8 +56,8 @@ static int sendcont (lua_State *L, int status, lua_KContext top) {
                 }
                 for (int i = 0; i < args; i++) lua_pushvalue(L, 2 + i); //копируем аргументы
                 int status = lua_pcallk(L, args + add_args, 1, tb_index, top, sendcont);
-                if (status != LUA_OK) {
-                  printf("NOT LUA_OK status %d\n", status);
+                if (status != LUA_OK && status != LUA_YIELD) {
+                  printf("NOT LUA_OK or yield status %d\n", status);
                         lua_getglobal(L, "warn");
                         lua_insert(L, lua_gettop(L) - 1);
                         lua_call(L, 1, 0);
@@ -67,6 +74,18 @@ static int sendcont (lua_State *L, int status, lua_KContext top) {
         return 0;
 }
 
+static int filtercont (lua_State *L, int state, lua_KContext top) {
+  if (lua_toboolean(L, -1) == 0)  return 0;
+  lua_pop(L, 1);
+
+  lua_getfield(L, 1, "traceback");
+  lua_getfield(L, 1, "placeholder");
+  lua_getfield(L, 1, "callback_fns");
+  lua_pushnil(L);
+  lua_pushnil(L);
+  sendcont(L, LUA_OK, top);
+}
+
 /*
         Перебирает все функции в таблице и вызывает их с переданными аргументами.
 */
@@ -77,15 +96,8 @@ static int levent_send (lua_State *L) {
         lua_getfield(L, 1, "filter");
         lua_pushvalue(L, 1);
         for (int i = 0; i < args; i++) lua_pushvalue(L, 2 + i); //копируем аргументы
-        lua_call(L, top, 1);
-        if (lua_toboolean(L, -1) == 0)  return 0;
-        lua_pop(L, 1);
-
-        lua_getfield(L, 1, "traceback");
-        lua_getfield(L, 1, "placeholder");
-        lua_getfield(L, 1, "callback_fns");
-        lua_pushnil(L);
-        sendcont(L, LUA_OK, top);
+        lua_callk(L, top, 1, top, filtercont);
+        filtercont(L, 0, top);
 
         return 0;
 }
@@ -121,9 +133,6 @@ static int levent_rmcallback (lua_State *L) {
 }
 
 static int __callcont (lua_State *L, int status, lua_KContext top) {
-    if (status != LUA_OK) {
-      printf("in callcont NOT LUA_OK status %d\n", status);
-    }
     return 0;
 }
 
