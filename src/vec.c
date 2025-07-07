@@ -77,12 +77,13 @@ static int lvec_fromhex (lua_State *L) {
         l--;
         input++;
     }
+    size_t vec_size = (size_t)l/2;
 
-    lua_createtable(L, (int)l/2, 0);
+    lua_createtable(L, (int)vec_size, 0);
     luaL_getmetatable(L, "vec");
     lua_setmetatable(L, -2);
 
-    for (size_t count = 1; count <= l; count++) {
+    for (size_t count = 1; count <= vec_size; count++) {
         sscanf(input, "%2hhx", &val);
         input += 2;
         lua_pushnumber(L, val);

@@ -43,7 +43,10 @@ assert(v1:eq {-0.5,-0.5,-0.5,-0.5})
 v1:pow(2)
 assert(v1:eq {0.25,0.25,0.25,0.25})
 
-assert(v2:eq(vec.fromhex(v2:tohex())))
+local v1 = vec.fromhex("#102080")
+assert(v1:eq {16,32,128})
+local hex = v1:tohex()
+assert(hex == "#102080")
 
 print("tostring", vec.new(1,2,3))
 assert(vec.__serialize {1,2,3} == "{1,2,3,}") --serialize
