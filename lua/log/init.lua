@@ -45,7 +45,7 @@ LogLevels = {
 local logger_class = obj:new "Logger"
 logger_class.on_message = Event:new "LoggerMain:on_message"
 logger_class.tags = { service = "Main" }
-logger_class.on_message:addCallback(defhandler, defhandler.send)
+logger_class.on_message:add_callback(defhandler, defhandler.send)
 for i, key in ipairs(LogLevels) do
 	LogLevels[key] = i
 	logger_class[string.lower(key)] = function (self, ...)

@@ -15,12 +15,12 @@ function M.human(streams)
 	local new_handler = Event:new "HumanLogHandler" --[[@as LogHandler]]
 	if streams then
 		for _, stream in ipairs(streams) do
-			new_handler:addCallback(function(mess)
+			new_handler:add_callback(function(mess)
 				stream:write(mess)
 			end)
 		end
 	else
-		new_handler:addCallback(io.write)
+		new_handler:add_callback(io.write)
 	end
 
 	---@param logger Logger
@@ -55,12 +55,12 @@ if to_json then
 		local new_handler = Event:new "JSONLogHandler" --[[@as LogHandler]]
 		if streams then
 			for _, stream in ipairs(streams) do
-				new_handler:addCallback(function(mess)
+				new_handler:add_callback(function(mess)
 					stream:write(mess)
 				end)
 			end
 		else
-			new_handler:addCallback(function(mess)
+			new_handler:add_callback(function(mess)
 				io.write(mess)
 			end)
 		end
@@ -81,12 +81,12 @@ if to_lua then
 		local new_handler = Event:new "LuaLogHandler" --[[@as LogHandler]]
 		if streams then
 			for _, stream in ipairs(streams) do
-				new_handler:addCallback(function(mess)
+				new_handler:add_callback(function(mess)
 					stream:write(mess)
 				end)
 			end
 		else
-			new_handler:addCallback(function(mess)
+			new_handler:add_callback(function(mess)
 				io.write(mess)
 			end)
 		end
