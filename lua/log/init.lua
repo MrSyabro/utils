@@ -1,5 +1,5 @@
 local obj = require "obj"
-local Event = require "eventmgr"
+local Event = require "event"
 local defhandler = require "log.handlers".human()
 
 local loggers = {}

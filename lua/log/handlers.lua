@@ -1,4 +1,4 @@
-local Event = require "eventmgr"
+local Event = require "event"
 local to_json, json = pcall(require, "dkjson")
 local to_lua, ser = pcall(require, "serialize")
 

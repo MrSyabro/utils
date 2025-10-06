@@ -13,11 +13,13 @@ local osc = os.clock
 ---@field returns table
 ---@field awaits table<thread, boolean>
 
+---Простейший менеджер асинхронщины на чистом Lua. Разработан был для регулирования асинхронной работы с ограничением по времени в кадр. Он работает невытесняюще так что за переключением задач нужно следить вручную функцией `coroutine.yield`.
 ---@class Loop : Object
 ---@field pool table<thread, threaddata>
 ---@field funcindexes table<function, thread>
 ---@field pausedpool table<thread, threaddata>
 ---@field removed table<thread, threaddata> слабая таблица удаленных, но не уничтоженных рутин
+---@field time number время, которым ограничена работа одного цикла менеджера
 ---@field weights number сумма весов всех задач
 ---@field thread thread
 ---@field name string?
